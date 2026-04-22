@@ -2726,11 +2726,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\OnlineAppointmentBookingSystem\\ScheduleService\\ScheduleService.csproj",
+      "projectUniqueName": "E:\\MediBook-OnlineAppointmentBookingSystem\\ScheduleService\\ScheduleService.csproj",
       "projectName": "ScheduleService",
-      "projectPath": "E:\\OnlineAppointmentBookingSystem\\ScheduleService\\ScheduleService.csproj",
+      "projectPath": "E:\\MediBook-OnlineAppointmentBookingSystem\\ScheduleService\\ScheduleService.csproj",
       "packagesPath": "C:\\Users\\priya\\.nuget\\packages\\",
-      "outputPath": "E:\\OnlineAppointmentBookingSystem\\ScheduleService\\obj\\",
+      "outputPath": "E:\\MediBook-OnlineAppointmentBookingSystem\\ScheduleService\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\priya\\AppData\\Roaming\\NuGet\\NuGet.Config"

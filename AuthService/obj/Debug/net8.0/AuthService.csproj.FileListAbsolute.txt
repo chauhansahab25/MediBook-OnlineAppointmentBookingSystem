@@ -225,3 +225,4 @@ E:\MediBook-OnlineAppointmentBookingSystem\AuthService\obj\Debug\net8.0\AuthServ
 E:\MediBook-OnlineAppointmentBookingSystem\AuthService\obj\Debug\net8.0\AuthService.genruntimeconfig.cache
 E:\MediBook-OnlineAppointmentBookingSystem\AuthService\obj\Debug\net8.0\ref\AuthService.dll
 E:\MediBook-OnlineAppointmentBookingSystem\AuthService\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.Google.dll
+E:\MediBook-OnlineAppointmentBookingSystem\AuthService\obj\Debug\net8.0\AuthService.sourcelink.json
