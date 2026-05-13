@@ -65,6 +65,9 @@ namespace PaymentService.Migrations
                     b.Property<int>("ProviderId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("RefundAmount")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone");
 

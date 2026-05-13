@@ -16,6 +16,22 @@ public class AppointmentController : ControllerBase
         _service = service;
     }
 
+    /// <summary>Get all appointments</summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll()
+    {
+        try
+        {
+            var appointments = await _service.GetAll();
+            return Ok(appointments);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
     /// <summary>Book a new appointment</summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -27,9 +43,9 @@ public class AppointmentController : ControllerBase
             var result = await _service.BookAppointment(dto);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
         }
     }
 
@@ -44,6 +60,22 @@ public class AppointmentController : ControllerBase
         if (appointment == null)
         {
             return NotFound(new { message = "Appointment not found." });
+        }
+
+        return Ok(appointment);
+    }
+
+    /// <summary>Get appointment by slot ID</summary>
+    [HttpGet("slot/{slotId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBySlotId(int slotId)
+    {
+        var appointment = await _service.GetBySlotId(slotId);
+
+        if (appointment == null)
+        {
+            return NotFound(new { message = "No appointment found for this slot." });
         }
 
         return Ok(appointment);
@@ -82,7 +114,8 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> GetByProviderAndDate(
         int providerId, [FromQuery] DateTime date)
     {
-        var appointments = await _service.GetByProviderAndDate(providerId, date);
+        var utcDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+        var appointments = await _service.GetByProviderAndDate(providerId, utcDate);
         return Ok(appointments);
     }
 
@@ -100,11 +133,11 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> Cancel(int id, [FromQuery] string cancelledBy = "Patient")
     {
         try
         {
-            var result = await _service.CancelAppointment(id);
+            var result = await _service.CancelAppointment(id, cancelledBy);
 
             if (!result)
             {
@@ -181,5 +214,21 @@ public class AppointmentController : ControllerBase
         }
 
         return Ok(new { message = $"Status updated to {dto.Status}." });
+    }
+
+    /// <summary>Delete an appointment permanently</summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var result = await _service.DeleteAppointment(id);
+
+        if (!result)
+        {
+            return NotFound(new { message = "Appointment not found." });
+        }
+
+        return Ok(new { message = "Appointment deleted successfully." });
     }
 } 

@@ -38,4 +38,10 @@ public class UpdateSlotDto
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
     public int DurationMinutes { get; set; }
+}
+
+public class VerificationResponse
+{
+    public int providerId { get; set; }
+    public bool isVerified { get; set; }
 } 

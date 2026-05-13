@@ -30,7 +30,7 @@ public class PaymentService : IPaymentService
     public async Task<PaymentResponseDto> ProcessPayment(ProcessPaymentDto dto)
     {
         string transactionId = string.Empty;
-        string status = "Paid";
+        string status = dto.Status ?? "Paid";
 
         // Only call Stripe for Card payments
         if (dto.Mode == "Card")
@@ -53,16 +53,24 @@ public class PaymentService : IPaymentService
             }
             catch
             {
-                // If Stripe is not configured fallback to manual
+                // If Stripe is not configured fallback to provided status or Paid
                 transactionId = Guid.NewGuid().ToString();
-                status = "Paid";
+                status = dto.Status ?? "Paid";
             }
         }
         else
         {
-            // For UPI, Wallet, Cash — just record as paid
+            // For UPI, Wallet, Cash — use provided status or default
             transactionId = Guid.NewGuid().ToString();
-            status = "Paid";
+            
+            if (string.IsNullOrEmpty(dto.Status))
+            {
+                status = (dto.Mode?.Equals("Cash", StringComparison.OrdinalIgnoreCase) == true) ? "Pending" : "Paid";
+            }
+            else
+            {
+                status = dto.Status;
+            }
         }
 
         var payment = new Payment
@@ -153,6 +161,7 @@ public class PaymentService : IPaymentService
 
         payment.Status = "Refunded";
         payment.RefundedAt = DateTime.UtcNow;
+        payment.RefundAmount = dto.RefundAmount ?? payment.Amount; // Store the actual refund amount
         payment.Notes = dto.Reason ?? payment.Notes;
 
         await _repo.Update(payment);
@@ -305,6 +314,18 @@ public class PaymentService : IPaymentService
 
     // ── Get Total Revenue For Provider ────────────────────────────────────────
 
+    public async Task<int> GetPaymentCount(int providerId)
+    {
+        var payments = await _repo.FindByProviderId(providerId);
+        return payments.Count;
+    }
+
+    public async Task<List<PaymentResponseDto>> GetAllPayments()
+    {
+        var payments = await _repo.GetAll();
+        return payments.Select(MapToResponse).ToList();
+    }
+
     public async Task<RevenueResponseDto> GetTotalRevenue(int providerId)
     {
         var payments = await _repo.FindByProviderId(providerId);
@@ -339,5 +360,18 @@ public class PaymentService : IPaymentService
             Notes = p.Notes,
             CreatedAt = p.CreatedAt
         };
+    }
+
+    public async Task<bool> DeletePayment(int paymentId)
+    {
+        var payment = await _repo.FindById(paymentId);
+        
+        if (payment == null)
+        {
+            return false;
+        }
+
+        await _repo.Delete(paymentId);
+        return true;
     }
 } 

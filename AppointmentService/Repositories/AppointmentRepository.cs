@@ -13,6 +13,13 @@ public class AppointmentRepository : IAppointmentRepository
         _context = context;
     }
 
+    public async Task<List<Appointment>> FindAll()
+    {
+        return await _context.Appointments
+            .OrderByDescending(a => a.AppointmentDate)
+            .ToListAsync();
+    }
+
     public async Task<Appointment?> FindById(int appointmentId)
     {
         return await _context.Appointments.FindAsync(appointmentId);
@@ -51,18 +58,21 @@ public class AppointmentRepository : IAppointmentRepository
     public async Task<List<Appointment>> FindByProviderIdAndAppointmentDate(
         int providerId, DateTime date)
     {
+        var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
         return await _context.Appointments
             .Where(a => a.ProviderId == providerId
-                     && a.AppointmentDate.Date == date.Date)
+                     && a.AppointmentDate >= startOfDay && a.AppointmentDate < endOfDay)
             .OrderBy(a => a.StartTime)
             .ToListAsync();
     }
 
     public async Task<List<Appointment>> FindUpcomingByPatientId(int patientId)
     {
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         return await _context.Appointments
             .Where(a => a.PatientId == patientId
-                     && a.AppointmentDate.Date >= DateTime.UtcNow.Date
+                     && a.AppointmentDate >= today
                      && a.Status == "Scheduled")
             .OrderBy(a => a.AppointmentDate)
             .ToListAsync();

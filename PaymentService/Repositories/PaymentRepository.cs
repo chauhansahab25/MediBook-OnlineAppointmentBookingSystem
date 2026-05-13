@@ -85,4 +85,21 @@ public class PaymentRepository : IPaymentRepository
         await _context.SaveChangesAsync();
         return payment;
     }
+
+    public async Task Delete(int paymentId)
+    {
+        var payment = await FindById(paymentId);
+        if (payment != null)
+        {
+            _context.Payments.Remove(payment);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<Payment>> GetAll()
+    {
+        return await _context.Payments
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+    }
 } 

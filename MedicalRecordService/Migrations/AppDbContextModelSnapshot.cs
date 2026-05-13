@@ -59,6 +59,11 @@ namespace MedicalRecordService.Migrations
                     b.Property<int>("ProviderId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

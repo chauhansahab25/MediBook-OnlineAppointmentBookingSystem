@@ -3,6 +3,7 @@ using System.Text;
 using MedicalRecordService.DTOs;
 using MedicalRecordService.Entities;
 using MedicalRecordService.Repositories;
+using System.Net.Http;
 
 namespace MedicalRecordService.Services;
 
@@ -10,13 +11,16 @@ public class RecordService : IRecordService
 {
     private readonly IRecordRepository _repo;
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public RecordService(IRecordRepository repo, IConfiguration configuration)
+    public RecordService(IRecordRepository repo, IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _repo = repo;
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
+    
     // ── Create Record ─────────────────────────────────────────────────────────
 
     public async Task<RecordResponseDto> CreateRecord(CreateRecordDto dto)
@@ -40,9 +44,10 @@ public class RecordService : IRecordService
             Diagnosis = Encrypt(dto.Diagnosis),
             Prescription = dto.Prescription != null ? Encrypt(dto.Prescription) : null,
             Notes = dto.Notes != null ? Encrypt(dto.Notes) : null,
+            RecordType = dto.RecordType,
 
             AttachmentUrl = dto.AttachmentUrl,
-            FollowUpDate = dto.FollowUpDate,
+            FollowUpDate = dto.FollowUpDate.HasValue ? DateTime.SpecifyKind(dto.FollowUpDate.Value, DateTimeKind.Utc) : null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -110,7 +115,8 @@ public class RecordService : IRecordService
         record.Diagnosis = Encrypt(dto.Diagnosis);
         record.Prescription = dto.Prescription != null ? Encrypt(dto.Prescription) : null;
         record.Notes = dto.Notes != null ? Encrypt(dto.Notes) : null;
-        record.FollowUpDate = dto.FollowUpDate;
+        record.RecordType = dto.RecordType;
+        record.FollowUpDate = dto.FollowUpDate.HasValue ? DateTime.SpecifyKind(dto.FollowUpDate.Value, DateTimeKind.Utc) : null;
         record.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _repo.Update(record);
@@ -155,6 +161,108 @@ public class RecordService : IRecordService
 
         var updated = await _repo.Update(record);
         return MapToResponse(updated);
+    }
+
+    public async Task<List<RecordResponseDto>> GetAllRecords()
+    {
+        var records = await _repo.GetAll();
+        if (records == null || records.Count == 0)
+        {
+            return new List<RecordResponseDto>();
+        }
+
+        var results = new List<RecordResponseDto>();
+        foreach (var record in records)
+        {
+            var dto = MapToResponse(record);
+            await EnrichRecordData(dto);
+            results.Add(dto);
+        }
+        return results;
+    }
+
+    private async Task EnrichRecordData(RecordResponseDto dto)
+    {
+        // Fetch patient details from AuthService
+        try
+        {
+            var authClient = _httpClientFactory.CreateClient("AuthService");
+            var patientResponse = await authClient.GetAsync($"/api/v1/auth/users/{dto.PatientId}");
+            if (patientResponse.IsSuccessStatusCode)
+            {
+                var patientJson = await patientResponse.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(patientJson))
+                {
+                    var patient = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(patientJson);
+                    if (patient.ValueKind != System.Text.Json.JsonValueKind.Null && patient.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    {
+                        if (patient.TryGetProperty("fullName", out var fullNameProp))
+                            dto.PatientName = fullNameProp.GetString();
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If auth service fails, continue without patient data
+        }
+
+        // Fetch provider details from ProviderService
+        try
+        {
+            var providerClient = _httpClientFactory.CreateClient("ProviderService");
+            var providerResponse = await providerClient.GetAsync($"/api/v1/providers/{dto.ProviderId}");
+            if (providerResponse.IsSuccessStatusCode)
+            {
+                var providerJson = await providerResponse.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(providerJson))
+                {
+                    var provider = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(providerJson);
+                    if (provider.ValueKind != System.Text.Json.JsonValueKind.Null && provider.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    {
+                        if (provider.TryGetProperty("fullName", out var fullNameProp))
+                            dto.ProviderName = fullNameProp.GetString();
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If provider service fails, continue without provider data
+        }
+
+        // Fetch appointment details to get appointment date
+        try
+        {
+            if (dto.AppointmentId > 0)
+            {
+                var appointmentClient = _httpClientFactory.CreateClient("AppointmentService");
+                var appointmentResponse = await appointmentClient.GetAsync($"/api/v1/appointments/{dto.AppointmentId}");
+                if (appointmentResponse.IsSuccessStatusCode)
+                {
+                    var appointmentJson = await appointmentResponse.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(appointmentJson))
+                    {
+                        var appointment = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(appointmentJson);
+                        if (appointment.ValueKind != System.Text.Json.JsonValueKind.Null && appointment.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                        {
+                            if (appointment.TryGetProperty("appointmentDate", out var appointmentDateProp))
+                            {
+                                var appointmentDateStr = appointmentDateProp.GetString();
+                                if (DateTime.TryParse(appointmentDateStr, out var appointmentDate))
+                                {
+                                    dto.AppointmentDate = appointmentDate;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If appointment service fails, continue without appointment date
+        }
     }
 
     // ── AES-256 Encryption ────────────────────────────────────────────────────
@@ -246,6 +354,7 @@ public class RecordService : IRecordService
             Diagnosis = Decrypt(r.Diagnosis),
             Prescription = r.Prescription != null ? Decrypt(r.Prescription) : null,
             Notes = r.Notes != null ? Decrypt(r.Notes) : null,
+            RecordType = r.RecordType,
 
             AttachmentUrl = r.AttachmentUrl,
             FollowUpDate = r.FollowUpDate,

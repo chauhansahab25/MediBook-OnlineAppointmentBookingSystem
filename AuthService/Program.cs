@@ -17,6 +17,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService.Services.AuthService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddHttpClient();
 
 // ── JWT + Google Authentication ──────────────────────────────────────────────
 string jwtKey = builder.Configuration["Jwt:Key"]
@@ -50,7 +51,22 @@ builder.Services.AddAuthentication(options =>
     options.CallbackPath = "/signin-google";
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+});
+
+// ── CORS ────────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // ── Controllers & Swagger ────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -104,6 +120,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -113,6 +130,35 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // Seed default admin user
+    var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+    await SeedAdminUser(userRepository);
 }
+
+// ── Seed Admin User ───────────────────────────────────────────────────────────
+async Task SeedAdminUser(IUserRepository userRepository)
+{
+    var adminEmail = "priyanshuchauhan2509@gmail.com";
+    var existingAdmin = await userRepository.FindByEmail(adminEmail);
+
+    if (existingAdmin == null)
+    {
+        var adminUser = new AuthService.Entities.User
+        {
+            FullName = "Admin",
+            Email = adminEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            Provider = "Local",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await userRepository.AddUser(adminUser);
+        Console.WriteLine("Default admin user created successfully.");
+    }
+}
+
 
 app.Run();

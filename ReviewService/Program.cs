@@ -10,9 +10,35 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ── HTTP Clients ─────────────────────────────────────────────────────────────
+builder.Services.AddHttpClient("ProviderService", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServiceUrls:ProviderService"]
+        ?? "http://localhost:5096");
+});
+
+builder.Services.AddHttpClient("AuthService", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServiceUrls:AuthService"]
+        ?? "http://localhost:5219");
+});
+
 // ── Dependency Injection ─────────────────────────────────────────────────────
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IReviewService, ReviewService.Services.ReviewService>();
+
+// ── CORS ────────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -43,6 +69,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 

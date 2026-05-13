@@ -24,17 +24,21 @@ public class SlotRepository : ISlotRepository
 
     public async Task<List<AvailabilitySlot>> FindByProviderIdAndDate(int providerId, DateTime date)
     {
+        var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
         return await _context.AvailabilitySlots
-            .Where(s => s.ProviderId == providerId && s.Date.Date == date.Date)
+            .Where(s => s.ProviderId == providerId && s.Date >= startOfDay && s.Date < endOfDay)
             .OrderBy(s => s.StartTime)
             .ToListAsync();
     }
 
     public async Task<List<AvailabilitySlot>> FindAvailableByProviderAndDate(int providerId, DateTime date)
     {
+        var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
         return await _context.AvailabilitySlots
             .Where(s => s.ProviderId == providerId
-                     && s.Date.Date == date.Date
+                     && s.Date >= startOfDay && s.Date < endOfDay
                      && s.IsBooked == false
                      && s.IsBlocked == false)
             .OrderBy(s => s.StartTime)
@@ -43,8 +47,10 @@ public class SlotRepository : ISlotRepository
 
     public async Task<List<AvailabilitySlot>> FindByDateBetween(DateTime startDate, DateTime endDate)
     {
+        var start = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc).AddDays(1);
         return await _context.AvailabilitySlots
-            .Where(s => s.Date.Date >= startDate.Date && s.Date.Date <= endDate.Date)
+            .Where(s => s.Date >= start && s.Date < end)
             .OrderBy(s => s.Date)
             .ThenBy(s => s.StartTime)
             .ToListAsync();

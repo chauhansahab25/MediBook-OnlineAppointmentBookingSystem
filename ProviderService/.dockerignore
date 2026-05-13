@@ -1,0 +1,49 @@
+bin/
+obj/
+out/
+.DS_Store
+*.user
+*.suo
+*.cache
+*.vspscc
+.vscode/
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NuGet Packages
+*.nupkg
+packages/
+
+# Visual Studio cache files
+*.cache
+*.ilk
+*.log
+*.tlog
+*.pgc
+*.pgs
+*.rsp
+*.sbr
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Keep these files
+!Dockerfile
+!.dockerignore

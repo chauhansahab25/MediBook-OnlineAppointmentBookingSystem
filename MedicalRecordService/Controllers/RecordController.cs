@@ -16,6 +16,22 @@ public class RecordController : ControllerBase
         _service = service;
     }
 
+    /// <summary>Get all medical records</summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll()
+    {
+        try
+        {
+            var records = await _service.GetAllRecords();
+            return Ok(records);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
+        }
+    }
+
     /// <summary>Create a new medical record for a completed appointment</summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -31,6 +47,10 @@ public class RecordController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, inner = ex.InnerException?.Message, stackTrace = ex.StackTrace });
         }
     }
 
@@ -152,5 +172,54 @@ public class RecordController : ControllerBase
         }
 
         return Ok(new { message = "Medical record deleted successfully." });
+    }
+
+    /// <summary>Download a medical record as a formatted text file</summary>
+    [HttpGet("{recordId}/download")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadRecord(int recordId)
+    {
+        var record = await _service.GetRecordById(recordId);
+
+        if (record == null)
+        {
+            return NotFound(new { message = "Medical record not found." });
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("====================================================");
+        sb.AppendLine("                 MEDICAL RECORD                     ");
+        sb.AppendLine("====================================================");
+        sb.AppendLine($"Date: {record.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}");
+        sb.AppendLine($"Patient ID: {record.PatientId}");
+        sb.AppendLine($"Provider ID: {record.ProviderId}");
+        sb.AppendLine("----------------------------------------------------");
+        sb.AppendLine($"DIAGNOSIS:");
+        sb.AppendLine(record.Diagnosis);
+        sb.AppendLine();
+        
+        if (!string.IsNullOrEmpty(record.Prescription))
+        {
+            sb.AppendLine("PRESCRIPTION:");
+            sb.AppendLine(record.Prescription);
+            sb.AppendLine();
+        }
+        
+        if (!string.IsNullOrEmpty(record.Notes))
+        {
+            sb.AppendLine("CONSULTATION NOTES:");
+            sb.AppendLine(record.Notes);
+            sb.AppendLine();
+        }
+
+        if (record.FollowUpDate.HasValue)
+        {
+            sb.AppendLine($"RECOMMENDED FOLLOW-UP: {record.FollowUpDate.Value.ToLocalTime():yyyy-MM-dd}");
+        }
+        sb.AppendLine("====================================================");
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        return File(bytes, "text/plain", $"MedicalRecord_{recordId}.txt");
     }
 }

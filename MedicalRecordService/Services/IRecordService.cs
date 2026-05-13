@@ -23,4 +23,5 @@ public interface IRecordService
     Task<int> GetRecordCount(int patientId);
 
     Task<RecordResponseDto> AttachDocument(int recordId, AttachDocumentDto dto);
+    Task<List<RecordResponseDto>> GetAllRecords();
 } 

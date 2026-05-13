@@ -88,4 +88,11 @@ public class RecordRepository : IRecordRepository
         await _context.SaveChangesAsync();
         return record;
     }
+
+    public async Task<List<MedicalRecord>> GetAll()
+    {
+        return await _context.MedicalRecords
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
 }

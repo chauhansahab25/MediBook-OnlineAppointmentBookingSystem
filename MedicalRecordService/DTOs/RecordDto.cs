@@ -9,6 +9,7 @@ public class CreateRecordDto
     public string? Prescription { get; set; }
     public string? Notes { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string RecordType { get; set; } = "Consultation";
     public DateTime? FollowUpDate { get; set; }
 }
 
@@ -17,6 +18,7 @@ public class UpdateRecordDto
     public string Diagnosis { get; set; } = string.Empty;
     public string? Prescription { get; set; }
     public string? Notes { get; set; }
+    public string RecordType { get; set; } = "Consultation";
     public DateTime? FollowUpDate { get; set; }
 }
 
@@ -31,11 +33,15 @@ public class RecordResponseDto
     public int AppointmentId { get; set; }
     public int PatientId { get; set; }
     public int ProviderId { get; set; }
+    public string? PatientName { get; set; }
+    public string? ProviderName { get; set; }
     public string Diagnosis { get; set; } = string.Empty;
     public string? Prescription { get; set; }
     public string? Notes { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string RecordType { get; set; } = "Consultation";
     public DateTime? FollowUpDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public DateTime? AppointmentDate { get; set; }
 } 

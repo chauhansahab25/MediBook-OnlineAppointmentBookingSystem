@@ -7,20 +7,30 @@ namespace ScheduleService.Services;
 public class ScheduleService : IScheduleService
 {
     private readonly ISlotRepository _repo;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public ScheduleService(ISlotRepository repo)
+    public ScheduleService(ISlotRepository repo, IHttpClientFactory httpClientFactory)
     {
         _repo = repo;
+        _httpClientFactory = httpClientFactory;
     }
 
     // ── Add single slot ───────────────────────────────────────────────────────
 
     public async Task<AvailabilitySlot> AddSlot(AddSlotDto dto)
     {
+        // Check if provider is verified before adding slots
+        bool isVerified = await CheckProviderVerification(dto.ProviderId);
+
+        if (!isVerified)
+        {
+            throw new InvalidOperationException("Provider is not verified by admin. Cannot add slots for unverified providers.");
+        }
+
         var slot = new AvailabilitySlot
         {
             ProviderId = dto.ProviderId,
-            Date = dto.Date,
+            Date = DateTime.SpecifyKind(dto.Date, DateTimeKind.Utc),
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
             DurationMinutes = dto.DurationMinutes,
@@ -37,10 +47,21 @@ public class ScheduleService : IScheduleService
 
     public async Task<List<AvailabilitySlot>> AddBulkSlots(List<BulkSlotDto> dtos)
     {
+        if (dtos.Any())
+        {
+            int providerId = dtos.First().ProviderId;
+            bool isVerified = await CheckProviderVerification(providerId);
+
+            if (!isVerified)
+            {
+                throw new InvalidOperationException("Provider is not verified by admin. Cannot add slots for unverified providers.");
+            }
+        }
+
         var slots = dtos.Select(dto => new AvailabilitySlot
         {
             ProviderId = dto.ProviderId,
-            Date = dto.Date,
+            Date = DateTime.SpecifyKind(dto.Date, DateTimeKind.Utc),
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
             DurationMinutes = dto.DurationMinutes,
@@ -188,6 +209,14 @@ public class ScheduleService : IScheduleService
 
     public async Task<List<AvailabilitySlot>> GenerateRecurringSlots(RecurringSlotDto dto)
     {
+        // Check if provider is verified before generating recurring slots
+        bool isVerified = await CheckProviderVerification(dto.ProviderId);
+
+        if (!isVerified)
+        {
+            throw new InvalidOperationException("Provider is not verified by admin. Cannot add slots for unverified providers.");
+        }
+
         var slots = new List<AvailabilitySlot>();
 
         DateTime current = dto.StartDate;
@@ -197,7 +226,7 @@ public class ScheduleService : IScheduleService
             var slot = new AvailabilitySlot
             {
                 ProviderId = dto.ProviderId,
-                Date = current,
+                Date = DateTime.SpecifyKind(current, DateTimeKind.Utc),
                 StartTime = dto.StartTime,
                 EndTime = dto.EndTime,
                 DurationMinutes = dto.DurationMinutes,
@@ -225,5 +254,31 @@ public class ScheduleService : IScheduleService
         }
 
         return await _repo.AddRange(slots);
+    }
+
+    // ── Private Helpers ───────────────────────────────────────────────────────
+
+    // Calls Provider-Service to check if provider is verified
+    private async Task<bool> CheckProviderVerification(int providerId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("ProviderService");
+            var response = await client.GetAsync($"/api/v1/providers/{providerId}/verification-status");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = System.Text.Json.JsonSerializer.Deserialize<VerificationResponse>(content);
+            return result?.isVerified ?? false;
+        }
+        catch
+        {
+            // If Provider-Service is not reachable, allow slot creation (fail-open)
+            return true;
+        }
     }
 }

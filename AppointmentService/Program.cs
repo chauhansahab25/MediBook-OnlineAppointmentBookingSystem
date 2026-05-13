@@ -4,6 +4,8 @@ using AppointmentService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database (PostgreSQL) ────────────────────────────────────────────────────
@@ -18,9 +20,43 @@ builder.Services.AddHttpClient("ScheduleService", client =>
         ?? "http://localhost:5002");
 });
 
+// ── HTTP Client for Provider-Service communication ───────────────────────────
+builder.Services.AddHttpClient("ProviderService", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServiceUrls:ProviderService"]
+        ?? "http://localhost:5003");
+});
+
+// ── HTTP Client for Auth-Service communication ────────────────────────────────
+builder.Services.AddHttpClient("AuthService", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServiceUrls:AuthService"]
+        ?? "http://localhost:5001");
+});
+
+builder.Services.AddHttpClient("PaymentService", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ServiceUrls:PaymentService"]
+        ?? "http://localhost:5048");
+});
+
 // ── Dependency Injection ─────────────────────────────────────────────────────
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService.Services.AppointmentService>();
+
+// ── CORS ────────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -51,6 +87,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 

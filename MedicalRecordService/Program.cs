@@ -15,8 +15,35 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IRecordRepository, RecordRepository>();
 builder.Services.AddScoped<IRecordService, RecordService>();
 
+// ── HTTP Clients for Inter-Service Communication ──────────────────────────────
+builder.Services.AddHttpClient("AuthService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:AuthService"] ?? "http://localhost:5219");
+});
+
+builder.Services.AddHttpClient("ProviderService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:ProviderService"] ?? "http://localhost:5096");
+});
+
+builder.Services.AddHttpClient("AppointmentService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:AppointmentService"] ?? "http://localhost:5238");
+});
+
 // ── Background Service (Follow-Up Reminders) ─────────────────────────────────
-builder.Services.AddHostedService<FollowUpReminderService>();
+// FollowUpReminderService removed - notification service dependency
+
+// ── CORS ────────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -48,6 +75,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 

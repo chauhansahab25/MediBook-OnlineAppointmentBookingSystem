@@ -7,16 +7,26 @@ namespace ReviewService.Services;
 public class ReviewService : IReviewService
 {
     private readonly IReviewRepository _repo;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public ReviewService(IReviewRepository repo)
+    public ReviewService(IReviewRepository repo, IHttpClientFactory httpClientFactory)
     {
         _repo = repo;
+        _httpClientFactory = httpClientFactory;
     }
 
     // ── Add Review ────────────────────────────────────────────────────────────
 
     public async Task<ReviewResponseDto> AddReview(AddReviewDto dto)
     {
+        // Check if provider is verified before adding review
+        bool isVerified = await CheckProviderVerification(dto.ProviderId);
+
+        if (!isVerified)
+        {
+            throw new InvalidOperationException("Provider is not verified by admin. Cannot add reviews for unverified providers.");
+        }
+
         // Enforce one review per appointment
         bool exists = await _repo.ExistsByAppointmentId(dto.AppointmentId);
 
@@ -45,6 +55,7 @@ public class ReviewService : IReviewService
         };
 
         var saved = await _repo.Add(review);
+        await TriggerProviderRatingUpdate(dto.ProviderId);
         return MapToResponse(saved);
     }
 
@@ -100,6 +111,7 @@ public class ReviewService : IReviewService
         review.IsAnonymous = dto.IsAnonymous;
 
         var updated = await _repo.Update(review);
+        await TriggerProviderRatingUpdate(review.ProviderId);
         return MapToResponse(updated);
     }
 
@@ -107,7 +119,15 @@ public class ReviewService : IReviewService
 
     public async Task<bool> DeleteReview(int reviewId)
     {
-        return await _repo.DeleteByReviewId(reviewId);
+        var review = await _repo.FindById(reviewId);
+        if (review == null) return false;
+
+        var result = await _repo.DeleteByReviewId(reviewId);
+        if (result)
+        {
+            await TriggerProviderRatingUpdate(review.ProviderId);
+        }
+        return result;
     }
 
     // ── Get Average Rating ────────────────────────────────────────────────────
@@ -133,14 +153,90 @@ public class ReviewService : IReviewService
     }
 
     // ── Get All Reviews ───────────────────────────────────────────────────────
-
+ 
     public async Task<List<ReviewResponseDto>> GetAllReviews()
     {
         var reviews = await _repo.GetAll();
-        return reviews.Select(MapToResponse).ToList();
+        var enriched = new List<ReviewResponseDto>();
+        foreach (var r in reviews)
+        {
+            var dto = MapToResponse(r);
+            await EnrichReviewData(dto);
+            // Ensure we never return null for ProviderName to avoid frontend ID fallback
+            if (string.IsNullOrEmpty(dto.ProviderName))
+                dto.ProviderName = $"Provider #{dto.ProviderId}";
+            enriched.Add(dto);
+        }
+        return enriched;
+    }
+ 
+    // ── Private Helpers ───────────────────────────────────────────────────────
+ 
+    private async Task EnrichReviewData(ReviewResponseDto dto)
+    {
+        try
+        {
+            if (!dto.IsAnonymous && dto.PatientId.HasValue)
+            {
+                var authClient = _httpClientFactory.CreateClient("AuthService");
+                var patientResponse = await authClient.GetAsync($"/api/v1/auth/users/{dto.PatientId}");
+                if (patientResponse.IsSuccessStatusCode)
+                {
+                    var patientJson = await patientResponse.Content.ReadAsStringAsync();
+                    var patient = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(patientJson);
+                    dto.PatientName = patient.GetProperty("fullName").GetString();
+                }
+            }
+            else if (dto.IsAnonymous)
+            {
+                dto.PatientName = "Anonymous Patient";
+            }
+ 
+            var providerClient = _httpClientFactory.CreateClient("ProviderService");
+            var providerResponse = await providerClient.GetAsync($"/api/v1/providers/{dto.ProviderId}");
+            if (providerResponse.IsSuccessStatusCode)
+            {
+                var providerJson = await providerResponse.Content.ReadAsStringAsync();
+                var provider = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(providerJson);
+                
+                dto.ProviderName = provider.GetProperty("fullName").GetString();
+            }
+            else
+            {
+                dto.ProviderName = "Unknown Provider";
+            }
+        }
+        catch (Exception ex)
+        { 
+            Console.WriteLine($"[ReviewService] Error enriching review {dto.ReviewId}: {ex.Message}");
+            if (string.IsNullOrEmpty(dto.ProviderName))
+                dto.ProviderName = "Error Fetching Name";
+        }
     }
 
-    // ── Private Helpers ───────────────────────────────────────────────────────
+    // Calls Provider-Service to check if provider is verified
+    private async Task<bool> CheckProviderVerification(int providerId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("ProviderService");
+            var response = await client.GetAsync($"/api/v1/providers/{providerId}/verification-status");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = System.Text.Json.JsonSerializer.Deserialize<VerificationResponse>(content);
+            return result?.isVerified ?? false;
+        }
+        catch
+        {
+            // If Provider-Service is not reachable, allow review (fail-open)
+            return true;
+        }
+    }
 
     private ReviewResponseDto MapToResponse(Review r)
     {
@@ -159,5 +255,21 @@ public class ReviewService : IReviewService
             IsVerified = r.IsVerified,
             IsAnonymous = r.IsAnonymous
         };
+    }
+    private async Task TriggerProviderRatingUpdate(int providerId)
+    {
+        try
+        {
+            var ratingData = await GetAvgRating(providerId);
+            var client = _httpClientFactory.CreateClient("ProviderService");
+            
+            // Assuming Provider-Service has an endpoint to update rating
+            // The endpoint is Put /api/v1/providers/{id}/rating (based on ProviderService.cs)
+            await client.PutAsync($"/api/v1/providers/{providerId}/rating?rating={ratingData.AverageRating}", null);
+        }
+        catch
+        {
+            // Fail silently, background update
+        }
     }
 }

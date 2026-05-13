@@ -33,6 +33,10 @@ public class MedicalRecord
     [MaxLength(500)]
     public string? AttachmentUrl { get; set; }
 
+    [Required]
+    [MaxLength(50)]
+    public string RecordType { get; set; } = "Consultation";
+
     public DateTime? FollowUpDate { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

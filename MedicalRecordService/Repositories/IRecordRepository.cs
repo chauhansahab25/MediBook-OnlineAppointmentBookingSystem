@@ -23,4 +23,5 @@ public interface IRecordRepository
     Task<MedicalRecord> Add(MedicalRecord record);
 
     Task<MedicalRecord> Update(MedicalRecord record);
+    Task<List<MedicalRecord>> GetAll();
 } 

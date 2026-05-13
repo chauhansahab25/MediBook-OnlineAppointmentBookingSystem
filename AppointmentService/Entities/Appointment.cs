@@ -36,6 +36,9 @@ public class Appointment
     [MaxLength(50)]
     public string Status { get; set; } = "Scheduled";
 
+    [MaxLength(50)]
+    public string? CancelledBy { get; set; }
+
     public string? Notes { get; set; }
 
     // InPerson, Teleconsultation

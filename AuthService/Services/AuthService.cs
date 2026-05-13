@@ -1,5 +1,6 @@
  
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,13 +15,15 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private static readonly Dictionary<string, int> RefreshTokenStore = new();
 
-    public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    public AuthService(IUserRepository userRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _userRepository = userRepository;
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<AuthResponseDto> Register(RegisterDto dto)
@@ -46,11 +49,44 @@ public class AuthService : IAuthService
 
         await _userRepository.AddUser(user);
 
+        // If registering as provider, sync to ProviderService
+        if (dto.Role == "Provider")
+        {
+            await SyncProviderToProviderService(user);
+        }
+
         string token = GenerateJwtToken(user);
         string refreshToken = GenerateRefreshToken();
         RefreshTokenStore[refreshToken] = user.UserId;
 
         return BuildAuthResponse(user, token, refreshToken);
+    }
+
+    private async Task SyncProviderToProviderService(User user)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            var providerUrl = _configuration["ProviderService:Url"] ?? "http://localhost:5096/api/v1";
+            
+            var syncDto = new
+            {
+                UserId = user.UserId,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone
+            };
+
+            var response = await httpClient.PostAsJsonAsync($"{providerUrl}/providers/sync", syncDto);
+            response.EnsureSuccessStatusCode();
+            
+            Console.WriteLine($"✅ Successfully synced provider {user.Email} to ProviderService");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Failed to sync provider to ProviderService: {ex.Message}");
+            // Don't fail registration if sync fails
+        }
     }
 
     public async Task<AuthResponseDto> Login(LoginDto dto)
@@ -224,6 +260,51 @@ public class AuthService : IAuthService
         return true;
     }
 
+    public async Task<List<UserProfileDto>> GetAllUsers()
+    {
+        var users = await _userRepository.GetAllUsers();
+        return users.Select(MapToProfileDto).ToList();
+    }
+
+    public async Task<UserProfileDto> UpdateUser(int userId, UpdateProfileDto dto)
+    {
+        var user = await _userRepository.FindByUserId(userId);
+
+        if (user == null)
+        {
+            throw new KeyNotFoundException("User not found.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.FullName))
+        {
+            user.FullName = dto.FullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Phone))
+        {
+            user.Phone = dto.Phone;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.ProfilePicUrl))
+        {
+            user.ProfilePicUrl = dto.ProfilePicUrl;
+        }
+
+        if (dto.IsActive.HasValue)
+        {
+            user.IsActive = dto.IsActive.Value;
+        }
+
+        await _userRepository.UpdateUser(user);
+
+        return MapToProfileDto(user);
+    }
+
+    public async Task<bool> DeleteUser(int userId)
+    {
+        return await _userRepository.DeleteByUserId(userId);
+    }
+
     // ── Private Helpers ──────────────────────────────────────────────────────
 
     private string GenerateJwtToken(User user)
@@ -276,6 +357,7 @@ public class AuthService : IAuthService
         {
             Token = token,
             RefreshToken = refreshToken,
+            UserId = user.UserId,
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role
@@ -293,7 +375,8 @@ public class AuthService : IAuthService
             Role = user.Role,
             Provider = user.Provider,
             ProfilePicUrl = user.ProfilePicUrl,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            IsActive = user.IsActive
         };
     }
 }

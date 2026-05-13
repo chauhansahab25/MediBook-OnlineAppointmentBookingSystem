@@ -23,4 +23,8 @@ public interface IPaymentRepository
     Task<Payment> Add(Payment payment);
 
     Task<Payment> Update(Payment payment);
+    
+    Task Delete(int paymentId);
+    
+    Task<List<Payment>> GetAll();
 }

@@ -14,4 +14,5 @@ public interface IUserRepository
     Task<bool> DeleteByUserId(int userId);
     Task<User> AddUser(User user);
     Task<User> UpdateUser(User user);
+    Task<List<User>> GetAllUsers();
 }

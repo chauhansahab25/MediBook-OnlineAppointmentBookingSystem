@@ -65,10 +65,28 @@ public class ScheduleController : ControllerBase
     /// <summary>Get available slots for a provider on a specific date</summary>
     [HttpGet("provider/{providerId}/available")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAvailable(int providerId, [FromQuery] DateTime date)
+    public async Task<IActionResult> GetAvailable(int providerId, [FromQuery] string date)
     {
-        var slots = await _service.GetAvailableSlots(providerId, date);
-        return Ok(slots);
+        try
+        {
+            Console.WriteLine($"GetAvailable called with providerId: {providerId}, date: {date}");
+            
+            if (DateTime.TryParse(date, out DateTime parsedDate) && (parsedDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc)) != DateTime.MinValue)
+            {
+                Console.WriteLine($"Date parsed successfully: {parsedDate}");
+                var slots = await _service.GetAvailableSlots(providerId, parsedDate);
+                Console.WriteLine($"Found {slots.Count} slots");
+                return Ok(slots);
+            }
+            Console.WriteLine($"Failed to parse date: {date}");
+            return BadRequest(new { message = "Invalid date format. Please use YYYY-MM-DD format." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception in GetAvailable: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+        }
     }
 
     /// <summary>Get a slot by ID</summary>

@@ -1,6 +1,7 @@
 using AppointmentService.DTOs;
 using AppointmentService.Entities;
 using AppointmentService.Repositories;
+using System.Text.Json;
 
 namespace AppointmentService.Services;
 
@@ -19,8 +20,38 @@ public class AppointmentService : IAppointmentService
 
     // ── Book Appointment ──────────────────────────────────────────────────────
 
+    public async Task<List<AppointmentResponseDto>> GetAll()
+    {
+        var appointments = await _repo.FindAll();
+        var enrichedAppointments = new List<AppointmentResponseDto>();
+
+        foreach (var appointment in appointments)
+        {
+            var dto = MapToResponse(appointment);
+            try
+            {
+                await EnrichAppointmentData(dto);
+            }
+            catch
+            {
+                // If enrichment fails, continue with basic data
+            }
+            enrichedAppointments.Add(dto);
+        }
+
+        return enrichedAppointments;
+    }
+
     public async Task<AppointmentResponseDto> BookAppointment(BookAppointmentDto dto)
     {
+        // Check if provider is verified before booking
+        bool isVerified = await CheckProviderVerification(dto.ProviderId);
+
+        if (!isVerified)
+        {
+            throw new InvalidOperationException("Provider is not verified by admin. Cannot book appointments with unverified providers.");
+        }
+
         // Call Schedule-Service to mark slot as booked
         bool slotBooked = await MarkSlotAsBooked(dto.SlotId);
 
@@ -35,7 +66,7 @@ public class AppointmentService : IAppointmentService
             ProviderId = dto.ProviderId,
             SlotId = dto.SlotId,
             ServiceType = dto.ServiceType,
-            AppointmentDate = dto.AppointmentDate,
+            AppointmentDate = DateTime.SpecifyKind(dto.AppointmentDate, DateTimeKind.Utc),
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
             Status = "Scheduled",
@@ -46,7 +77,9 @@ public class AppointmentService : IAppointmentService
         };
 
         var saved = await _repo.Add(appointment);
-        return MapToResponse(saved);
+        var response = MapToResponse(saved);
+        await EnrichAppointmentData(response);
+        return response;
     }
 
     // ── Get By ID ─────────────────────────────────────────────────────────────
@@ -60,7 +93,23 @@ public class AppointmentService : IAppointmentService
             return null;
         }
 
-        return MapToResponse(appointment);
+        var dto = MapToResponse(appointment);
+        await EnrichAppointmentData(dto);
+        return dto;
+    }
+
+    public async Task<AppointmentResponseDto?> GetBySlotId(int slotId)
+    {
+        var appointment = await _repo.FindBySlotId(slotId);
+
+        if (appointment == null)
+        {
+            return null;
+        }
+
+        var dto = MapToResponse(appointment);
+        await EnrichAppointmentData(dto);
+        return dto;
     }
 
     // ── Get By Patient ────────────────────────────────────────────────────────
@@ -68,7 +117,14 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetByPatient(int patientId)
     {
         var appointments = await _repo.FindByPatientId(patientId);
-        return appointments.Select(MapToResponse).ToList();
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
 
     // ── Get By Provider ───────────────────────────────────────────────────────
@@ -76,7 +132,14 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetByProvider(int providerId)
     {
         var appointments = await _repo.FindByProviderId(providerId);
-        return appointments.Select(MapToResponse).ToList();
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
 
     // ── Get By Provider And Date ──────────────────────────────────────────────
@@ -85,12 +148,19 @@ public class AppointmentService : IAppointmentService
         int providerId, DateTime date)
     {
         var appointments = await _repo.FindByProviderIdAndAppointmentDate(providerId, date);
-        return appointments.Select(MapToResponse).ToList();
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
 
     // ── Cancel Appointment ────────────────────────────────────────────────────
 
-    public async Task<bool> CancelAppointment(int appointmentId)
+    public async Task<bool> CancelAppointment(int appointmentId, string cancelledBy = "Patient")
     {
         var appointment = await _repo.FindById(appointmentId);
 
@@ -113,10 +183,47 @@ public class AppointmentService : IAppointmentService
         await ReleaseSlot(appointment.SlotId);
 
         appointment.Status = "Cancelled";
+        appointment.CancelledBy = cancelledBy;
         appointment.UpdatedAt = DateTime.UtcNow;
 
         await _repo.Update(appointment);
+
+        // Process automatic refund if cancelled by provider
+        if (cancelledBy == "Provider")
+        {
+            await ProcessAutomaticRefund(appointment);
+        }
+
         return true;
+    }
+
+    // ── Process Automatic Refund ────────────────────────────────────────
+    private async Task ProcessAutomaticRefund(Appointment appointment)
+    {
+        try
+        {
+            // Create refund record
+            var client = _httpClientFactory.CreateClient("PaymentService");
+            var refundData = new
+            {
+                AppointmentId = appointment.AppointmentId,
+                PatientId = appointment.PatientId,
+                ProviderId = appointment.ProviderId,
+                Amount = 550m,
+                Status = "Refunded",
+                Mode = "Online",
+                TransactionId = "refund_" + DateTime.UtcNow.Ticks,
+                Currency = "INR",
+                Notes = "Appointment cancelled by provider - full refund"
+            };
+
+            var response = await client.PostAsJsonAsync("/payments/refund", refundData);
+            Console.WriteLine($"Automatic refund processed for appointment {appointment.AppointmentId}: {response}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to process automatic refund for appointment {appointment.AppointmentId}: {ex.Message}");
+        }
     }
 
     // ── Reschedule Appointment ────────────────────────────────────────────────
@@ -148,13 +255,15 @@ public class AppointmentService : IAppointmentService
         }
 
         appointment.SlotId = dto.NewSlotId;
-        appointment.AppointmentDate = dto.NewAppointmentDate;
+        appointment.AppointmentDate = DateTime.SpecifyKind(dto.NewAppointmentDate, DateTimeKind.Utc);
         appointment.StartTime = dto.NewStartTime;
         appointment.EndTime = dto.NewEndTime;
         appointment.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _repo.Update(appointment);
-        return MapToResponse(updated);
+        var response = MapToResponse(updated);
+        await EnrichAppointmentData(response);
+        return response;
     }
 
     // ── Complete Appointment ──────────────────────────────────────────────────
@@ -203,7 +312,14 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetUpcomingByPatient(int patientId)
     {
         var appointments = await _repo.FindUpcomingByPatientId(patientId);
-        return appointments.Select(MapToResponse).ToList();
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
 
     // ── Get Appointment Count ─────────────────────────────────────────────────
@@ -213,7 +329,42 @@ public class AppointmentService : IAppointmentService
         return await _repo.CountByProviderId(providerId);
     }
 
+    public async Task<bool> DeleteAppointment(int appointmentId)
+    {
+        var appointment = await _repo.FindById(appointmentId);
+        if (appointment == null) return false;
+
+        // Release the slot back in Schedule-Service before deleting the appointment
+        await ReleaseSlot(appointment.SlotId);
+
+        return await _repo.Delete(appointmentId);
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────────
+
+    // Calls Provider-Service to check if provider is verified
+    private async Task<bool> CheckProviderVerification(int providerId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("ProviderService");
+            var response = await client.GetAsync($"/api/v1/providers/{providerId}/verification-status");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = System.Text.Json.JsonSerializer.Deserialize<VerificationResponse>(content);
+            return result?.isVerified ?? false;
+        }
+        catch
+        {
+            // If Provider-Service is not reachable, allow booking (fail-open)
+            return true;
+        }
+    }
 
     // Calls Schedule-Service to mark slot as booked
     private async Task<bool> MarkSlotAsBooked(int slotId)
@@ -262,8 +413,115 @@ public class AppointmentService : IAppointmentService
             Status = a.Status,
             Notes = a.Notes,
             ModeOfConsultation = a.ModeOfConsultation,
+            CancelledBy = a.CancelledBy,
             CreatedAt = a.CreatedAt,
-            UpdatedAt = a.UpdatedAt
+            UpdatedAt = a.UpdatedAt,
+            PatientName = string.Empty,
+            PatientEmail = string.Empty,
+            ProviderName = string.Empty,
+            ProviderEmail = string.Empty,
+            Specialization = string.Empty,
+            PaymentStatus = string.Empty,
+            PaymentMode = string.Empty,
+            TransactionId = string.Empty
         };
+    }
+
+    // Enriches appointment with patient and provider details
+    private async Task EnrichAppointmentData(AppointmentResponseDto dto)
+    {
+        try
+        {
+            // Fetch patient details from AuthService
+            try
+            {
+                var authClient = _httpClientFactory.CreateClient("AuthService");
+                var patientResponse = await authClient.GetAsync($"/api/v1/auth/users/{dto.PatientId}");
+                if (patientResponse.IsSuccessStatusCode)
+                {
+                    var patientJson = await patientResponse.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(patientJson))
+                    {
+                        var patient = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(patientJson);
+                        if (patient.ValueKind != JsonValueKind.Null && patient.ValueKind != JsonValueKind.Undefined)
+                        {
+                            if (patient.TryGetProperty("fullName", out var fullNameProp))
+                                dto.PatientName = fullNameProp.GetString();
+                            if (patient.TryGetProperty("email", out var emailProp))
+                                dto.PatientEmail = emailProp.GetString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If auth service fails, continue without patient data
+            }
+
+            // Fetch provider details from ProviderService
+            try
+            {
+                var providerClient = _httpClientFactory.CreateClient("ProviderService");
+                var providerResponse = await providerClient.GetAsync($"/api/v1/providers/{dto.ProviderId}");
+                if (providerResponse.IsSuccessStatusCode)
+                {
+                    var providerJson = await providerResponse.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(providerJson))
+                    {
+                        var provider = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(providerJson);
+                        if (provider.ValueKind != JsonValueKind.Null && provider.ValueKind != JsonValueKind.Undefined)
+                        {
+                            if (provider.TryGetProperty("fullName", out var fullNameProp))
+                                dto.ProviderName = fullNameProp.GetString();
+                            if (provider.TryGetProperty("email", out var emailProp))
+                                dto.ProviderEmail = emailProp.GetString();
+                            if (provider.TryGetProperty("specialization", out var specProp))
+                                dto.Specialization = specProp.GetString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If provider service fails, continue without provider data
+            }
+
+            // Fetch Payment status from PaymentService
+            var paymentClient = _httpClientFactory.CreateClient("PaymentService");
+            try
+            {
+                var paymentResponse = await paymentClient.GetAsync($"/api/v1/payments/appointment/{dto.AppointmentId}");
+                if (paymentResponse.IsSuccessStatusCode)
+                {
+                    var paymentJson = await paymentResponse.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(paymentJson))
+                    {
+                        var payment = JsonSerializer.Deserialize<JsonElement>(paymentJson);
+                        if (payment.ValueKind != JsonValueKind.Null && payment.ValueKind != JsonValueKind.Undefined)
+                        {
+                            if (payment.TryGetProperty("status", out var statusProp))
+                                dto.PaymentStatus = statusProp.GetString();
+                            
+                            if (payment.TryGetProperty("amount", out var amountProp))
+                                dto.PaymentAmount = amountProp.GetDecimal();
+                            
+                            if (payment.TryGetProperty("mode", out var modeProp))
+                                dto.PaymentMode = modeProp.GetString();
+                            
+                            if (payment.TryGetProperty("transactionId", out var txnProp))
+                                dto.TransactionId = txnProp.GetString();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If payment service fails, continue without payment data
+            }
+        }
+        catch
+        {
+            // If enrichment fails, continue with basic data
+        }
     }
 } 

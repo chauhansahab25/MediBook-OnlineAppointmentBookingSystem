@@ -41,6 +41,8 @@ public class Payment
 
     public DateTime? RefundedAt { get; set; }
 
+    public decimal? RefundAmount { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

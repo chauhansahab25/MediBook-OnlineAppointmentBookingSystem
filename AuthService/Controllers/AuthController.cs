@@ -139,6 +139,67 @@ public class AuthController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
+    [HttpGet("users")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _authService.GetAllUsers();
+        return Ok(users);
+    }
+
+    [HttpGet("users/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById(int id)
+    {
+        try
+        {
+            var user = await _authService.GetUserById(id);
+            return Ok(user);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("users/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateProfileDto dto)
+    {
+        try
+        {
+            var user = await _authService.UpdateUser(id, dto);
+            return Ok(user);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("users/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        bool success = await _authService.DeleteUser(id);
+
+        if (!success)
+        {
+            return NotFound(new { message = "User not found." });
+        }
+
+        return Ok(new { message = "User deleted successfully." });
+    }
+
     private int GetCurrentUserId()
     {
         string? value = User.FindFirstValue(ClaimTypes.NameIdentifier);

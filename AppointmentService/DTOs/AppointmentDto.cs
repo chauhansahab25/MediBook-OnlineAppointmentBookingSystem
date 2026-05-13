@@ -39,6 +39,24 @@ public class AppointmentResponseDto
     public string Status { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public string ModeOfConsultation { get; set; } = string.Empty;
+    public string? CancelledBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    
+    // Enriched fields
+    public string? PatientName { get; set; }
+    public string? PatientEmail { get; set; }
+    public string? ProviderName { get; set; }
+    public string? ProviderEmail { get; set; }
+    public string? Specialization { get; set; }
+    public string? PaymentStatus { get; set; }
+    public decimal? PaymentAmount { get; set; }
+    public string? PaymentMode { get; set; }
+    public string? TransactionId { get; set; }
+}
+
+public class VerificationResponse
+{
+    public int providerId { get; set; }
+    public bool isVerified { get; set; }
 } 

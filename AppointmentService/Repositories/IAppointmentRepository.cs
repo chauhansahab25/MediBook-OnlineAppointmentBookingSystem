@@ -4,6 +4,8 @@ namespace AppointmentService.Repositories;
 
 public interface IAppointmentRepository
 {
+    Task<List<Appointment>> FindAll();
+
     Task<Appointment?> FindById(int appointmentId);
 
     Task<List<Appointment>> FindByPatientId(int patientId);

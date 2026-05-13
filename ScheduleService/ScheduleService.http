@@ -3,4 +3,40 @@
 GET {{ScheduleService_HostAddress}}/weatherforecast/
 Accept: application/json
 
+### Add Sample Slots for Testing
+POST {{ScheduleService_HostAddress}}/api/v1/slots
+Content-Type: application/json
+
+{
+  "providerId": 3,
+  "date": "2024-05-15T00:00:00",
+  "startTime": "PT9H",
+  "endTime": "PT10H",
+  "durationMinutes": 60
+}
+
+### Add More Sample Slots
+POST {{ScheduleService_HostAddress}}/api/v1/slots
+Content-Type: application/json
+
+{
+  "providerId": 3,
+  "date": "2024-05-15T00:00:00",
+  "startTime": "PT11H",
+  "endTime": "PT12H",
+  "durationMinutes": 60
+}
+
+### Add Evening Slot
+POST {{ScheduleService_HostAddress}}/api/v1/slots
+Content-Type: application/json
+
+{
+  "providerId": 3,
+  "date": "2024-05-15T00:00:00",
+  "startTime": "PT14H",
+  "endTime": "PT15H",
+  "durationMinutes": 60
+}
+
 ###

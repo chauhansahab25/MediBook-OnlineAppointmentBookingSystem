@@ -58,14 +58,20 @@ public class PaymentController : ControllerBase
         return Ok(payments);
     }
 
-    /// <summary>Get payment history between two dates</summary>
+    /// <summary>Get payment history (all or filtered by dates)</summary>
     [HttpGet("history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHistory(
-        [FromQuery] DateTime startDate,
-        [FromQuery] DateTime endDate)
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
     {
-        var payments = await _service.GetPaymentHistory(startDate, endDate);
+        if (startDate == null || endDate == null)
+        {
+            var allPayments = await _service.GetAllPayments();
+            return Ok(allPayments);
+        }
+        
+        var payments = await _service.GetPaymentHistory(startDate.Value, endDate.Value);
         return Ok(payments);
     }
 
@@ -117,7 +123,43 @@ public class PaymentController : ControllerBase
         }
     }
 
-    /// <summary>Refund a payment</summary>
+    /// <summary>Refund a payment by ID (URL path)</summary>
+    [HttpPost("{paymentId}/refund")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RefundById(int paymentId, [FromBody] RefundRequestDto dto)
+    {
+        try
+        {
+            var refundDto = new RefundPaymentDto
+            {
+                PaymentId = paymentId,
+                RefundAmount = dto.RefundAmount,
+                Reason = "Appointment cancelled by patient"
+            };
+            
+            var result = await _service.RefundPayment(refundDto);
+
+            if (!result)
+            {
+                return NotFound(new { message = "Payment not found." });
+            }
+
+            return Ok(new { 
+                message = "Payment refunded successfully.",
+                paymentId = paymentId,
+                refundAmount = dto.RefundAmount,
+                status = "Refunded"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Refund a payment (body parameter)</summary>
     [HttpPost("refund")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -157,5 +199,28 @@ public class PaymentController : ControllerBase
         }
 
         return Ok(new { message = $"Payment status updated to {dto.Status}." });
+    }
+
+    /// <summary>Delete a payment record</summary>
+    [HttpDelete("{paymentId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeletePayment(int paymentId)
+    {
+        try
+        {
+            var result = await _service.DeletePayment(paymentId);
+
+            if (!result)
+            {
+                return NotFound(new { message = "Payment not found." });
+            }
+
+            return Ok(new { message = "Payment deleted successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

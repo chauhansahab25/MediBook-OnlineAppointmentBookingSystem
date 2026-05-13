@@ -7,6 +7,7 @@ public class ProcessPaymentDto
     public int ProviderId { get; set; }
     public decimal Amount { get; set; }
     public string Mode { get; set; } = "Card";
+    public string? Status { get; set; }
     public string Currency { get; set; } = "USD";
     public string? Notes { get; set; }
 }
@@ -15,6 +16,14 @@ public class RefundPaymentDto
 {
     public int PaymentId { get; set; }
     public string? Reason { get; set; }
+    public decimal? RefundAmount { get; set; }
+}
+
+public class RefundRequestDto
+{
+    public decimal RefundAmount { get; set; }
+    public string? RefundDate { get; set; }
+    public string? Status { get; set; }
 }
 
 public class UpdatePaymentStatusDto
@@ -36,6 +45,7 @@ public class PaymentResponseDto
     public string Currency { get; set; } = string.Empty;
     public DateTime? PaidAt { get; set; }
     public DateTime? RefundedAt { get; set; }
+    public decimal? RefundAmount { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
 }

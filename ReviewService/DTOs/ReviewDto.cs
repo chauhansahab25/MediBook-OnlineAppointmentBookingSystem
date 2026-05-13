@@ -30,6 +30,8 @@ public class ReviewResponseDto
     public DateTime ReviewDate { get; set; }
     public bool IsVerified { get; set; }
     public bool IsAnonymous { get; set; }
+    public string? PatientName { get; set; }
+    public string? ProviderName { get; set; }
 }
 
 public class AvgRatingResponseDto
@@ -37,4 +39,10 @@ public class AvgRatingResponseDto
     public int ProviderId { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
+}
+
+public class VerificationResponse
+{
+    public int providerId { get; set; }
+    public bool isVerified { get; set; }
 } 

@@ -10,4 +10,5 @@ public class UserProfileDto
     public string Provider { get; set; } = string.Empty;
     public string? ProfilePicUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool IsActive { get; set; } = true;
 }

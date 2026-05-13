@@ -1,84 +1,119 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProviderService.DTOs;
 using ProviderService.Entities;
 using ProviderService.Services;
+using System.Text.Json;
 
 namespace ProviderService.Controllers;
 
 [ApiController]
 [Route("api/v1/providers")]
-[Produces("application/json")]
 public class ProviderController : ControllerBase
 {
-    private readonly IProviderService _service;
+    private readonly IProviderService _providerService;
 
-    public ProviderController(IProviderService service)
+    public ProviderController(IProviderService providerService)
     {
-        _service = service;
+        _providerService = providerService;
     }
 
-    /// <summary>Register a new healthcare provider</summary>
-    [HttpPost]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register([FromBody] Provider provider)
-    {
-        var result = await _service.RegisterProvider(provider);
-        return Ok(result);
-    }
-
-    /// <summary>Get all providers</summary>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAllProviders([FromQuery] bool? verifiedOnly)
     {
-        var providers = await _service.GetAllProviders();
-        return Ok(providers);
-    }
-
-    /// <summary>Get a provider by ID</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var provider = await _service.GetProviderById(id);
-
-        if (provider == null)
+        List<Provider> providers;
+        if (verifiedOnly.HasValue)
         {
-            return NotFound(new { message = "Provider not found." });
+            providers = await _providerService.GetAllProviders(verifiedOnly.Value);
         }
+        else
+        {
+            providers = await _providerService.GetAllProviders(false);
+        }
+        
+        // Enrich with user data
+        var enrichedProviders = new List<object>();
+        using var httpClient = new HttpClient();
+        var authServiceUrl = "http://localhost:5219/api/v1/auth";
+        
+        foreach (var provider in providers)
+        {
+            string fullName = $"User #{provider.UserId}";
+            string email = "N/A";
+            string role = "Unknown";
+            
+            try
+            {
+                var response = await httpClient.GetAsync($"{authServiceUrl}/users/{provider.UserId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    
+                    if (root.TryGetProperty("fullName", out var nameElement))
+                        fullName = nameElement.GetString() ?? fullName;
+                    if (root.TryGetProperty("email", out var emailElement))
+                        email = emailElement.GetString() ?? email;
+                    if (root.TryGetProperty("role", out var roleElement))
+                        role = roleElement.GetString() ?? role;
+                    
+                    // Skip if user is not a Provider
+                    if (role != "Provider")
+                        continue;
+                }
+            }
+            catch { /* Use defaults */ }
+            
+            // Fetch Rating from ReviewService
+            double avgRating = 0;
+            try
+            {
+                var reviewServiceUrl = "http://localhost:5211/api/v1/reviews"; 
+                var ratingResponse = await httpClient.GetAsync($"{reviewServiceUrl}/provider/{provider.ProviderId}/avgrating");
+                if (ratingResponse.IsSuccessStatusCode)
+                {
+                    var ratingJson = await ratingResponse.Content.ReadAsStringAsync();
+                    using var ratingDoc = JsonDocument.Parse(ratingJson);
+                    if (ratingDoc.RootElement.TryGetProperty("averageRating", out var avgElement))
+                        avgRating = avgElement.GetDouble();
+                }
+            }
+            catch { avgRating = provider.AvgRating; }
 
-        return Ok(provider);
+            enrichedProviders.Add(new
+            {
+                provider.ProviderId,
+                provider.UserId,
+                FullName = fullName,
+                Email = email,
+                provider.Specialization,
+                provider.Qualification,
+                provider.ExperienceYears,
+                provider.Bio,
+                provider.ClinicName,
+                provider.ClinicAddress,
+                AvgRating = avgRating,
+                provider.IsVerified,
+                provider.IsAvailable,
+                provider.CreatedAt
+            });
+        }
+        
+        return Ok(enrichedProviders);
     }
 
-    /// <summary>Get providers by specialization</summary>
-    [HttpGet("specialization/{specialization}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBySpecialization(string specialization)
-    {
-        var providers = await _service.GetBySpecialization(specialization);
-        return Ok(providers);
-    }
-
-    /// <summary>Search providers by name or specialization</summary>
-    [HttpGet("search")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Search([FromQuery] string text)
-    {
-        var providers = await _service.SearchProviders(text);
-        return Ok(providers);
-    }
-
-    /// <summary>Update a provider profile</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] Provider provider)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProviderById(int id)
     {
         try
         {
-            var updated = await _service.UpdateProvider(id, provider);
-            return Ok(updated);
+            var provider = await _providerService.GetEnrichedProviderById(id);
+            if (provider == null)
+            {
+                return NotFound(new { message = "Provider not found." });
+            }
+            return Ok(provider);
         }
         catch (KeyNotFoundException ex)
         {
@@ -86,67 +121,141 @@ public class ProviderController : ControllerBase
         }
     }
 
-    /// <summary>Verify a provider — Admin only</summary>
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetProviderByUserId(int userId)
+    {
+        try
+        {
+            var provider = await _providerService.GetProviderByUserId(userId);
+            return Ok(provider);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchProviders([FromQuery] string term)
+    {
+        var providers = await _providerService.SearchProviders(term);
+        return Ok(providers);
+    }
+
+    [HttpPost("sync")]
+    public async Task<IActionResult> SyncProvider([FromBody] SyncProviderDto dto)
+    {
+        try
+        {
+            var provider = await _providerService.SyncFromAuthService(dto);
+            return Ok(provider);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> CreateProvider([FromBody] ProviderDto dto)
+    {
+        try
+        {
+            var provider = await _providerService.CreateProvider(dto);
+            return CreatedAtAction(nameof(GetProviderById), new { id = provider.ProviderId }, provider);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProvider(int id, [FromBody] ProviderDto dto)
+    {
+        try
+        {
+            var provider = await _providerService.UpdateProvider(id, dto);
+            return Ok(provider);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProvider(int id)
+    {
+        bool success = await _providerService.DeleteProvider(id);
+        if (!success)
+        {
+            return NotFound(new { message = "Provider not found." });
+        }
+        return Ok(new { message = "Provider deleted successfully." });
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}/verify")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Verify(int id)
+    public async Task<IActionResult> VerifyProvider(int id)
     {
-        var result = await _service.VerifyProvider(id);
-
-        if (!result)
+        try
         {
-            return NotFound(new { message = "Provider not found." });
+            var provider = await _providerService.VerifyProvider(id);
+            return Ok(provider);
         }
-
-        return Ok(new { message = "Provider verified successfully." });
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
-    /// <summary>Set provider availability status</summary>
-    [HttpPut("{id}/availability")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetAvailability(int id, [FromQuery] bool available)
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}/unverify")]
+    public async Task<IActionResult> UnverifyProvider(int id)
     {
-        var result = await _service.SetAvailability(id, available);
-
-        if (!result)
+        try
         {
-            return NotFound(new { message = "Provider not found." });
+            var provider = await _providerService.UnverifyProvider(id);
+            return Ok(provider);
         }
-
-        return Ok(new { message = $"Availability set to {available}." });
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
-    /// <summary>Update provider average rating</summary>
+    [HttpGet("{id}/verification-status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetVerificationStatus(int id)
+    {
+        try
+        {
+            var provider = await _providerService.GetProviderById(id);
+            if (provider == null)
+            {
+                return NotFound(new { message = "Provider not found." });
+            }
+            return Ok(new { providerId = provider.ProviderId, isVerified = provider.IsVerified });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{id}/rating")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateRating(int id, [FromQuery] double rating)
     {
-        var result = await _service.UpdateRating(id, rating);
-
+        var result = await _providerService.UpdateRating(id, rating);
         if (!result)
         {
             return NotFound(new { message = "Provider not found." });
         }
-
-        return Ok(new { message = $"Rating updated to {rating}." });
-    }
-
-    /// <summary>Delete a provider</summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _service.DeleteProvider(id);
-
-        if (!result)
-        {
-            return NotFound(new { message = "Provider not found." });
-        }
-
-        return Ok(new { message = "Provider deleted successfully." });
+        return Ok(new { message = "Rating updated successfully." });
     }
 }

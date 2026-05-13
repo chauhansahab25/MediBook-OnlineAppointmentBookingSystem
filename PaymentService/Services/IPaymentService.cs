@@ -20,5 +20,9 @@ public interface IPaymentService
 
     Task<byte[]> GenerateInvoice(int paymentId);
 
+    Task<List<PaymentResponseDto>> GetAllPayments();
+
     Task<RevenueResponseDto> GetTotalRevenue(int providerId);
-} 
+
+    Task<bool> DeletePayment(int paymentId);
+}
