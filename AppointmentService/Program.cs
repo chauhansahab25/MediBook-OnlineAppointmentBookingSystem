@@ -17,24 +17,27 @@ builder.Services.AddHttpClient("ScheduleService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:ScheduleService"]
-        ?? "http://localhost:5002");
+        ?? "http://localhost:5043");
 });
+
 
 // ── HTTP Client for Provider-Service communication ───────────────────────────
 builder.Services.AddHttpClient("ProviderService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:ProviderService"]
-        ?? "http://localhost:5003");
+        ?? "http://localhost:5096");
 });
+
 
 // ── HTTP Client for Auth-Service communication ────────────────────────────────
 builder.Services.AddHttpClient("AuthService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:AuthService"]
-        ?? "http://localhost:5001");
+        ?? "http://localhost:5219");
 });
+
 
 builder.Services.AddHttpClient("PaymentService", client =>
 {
@@ -76,17 +79,16 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Appointment Service v1");
-        options.RoutePrefix = "swagger";
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Appointment Service v1");
+    options.RoutePrefix = "swagger";
+});
 
-app.UseHttpsRedirection();
+app.MapGet("/", () => "MediBook Appointment Service Running ✅");
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AppointmentService" }));
+
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();

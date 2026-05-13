@@ -46,17 +46,16 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Payment Service v1");
-        options.RoutePrefix = "swagger";
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Payment Service v1");
+    options.RoutePrefix = "swagger";
+});
 
-app.UseHttpsRedirection();
+app.MapGet("/", () => "MediBook Payment Service Running ✅");
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "PaymentService" }));
+
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();

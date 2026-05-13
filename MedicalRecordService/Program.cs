@@ -27,8 +27,9 @@ builder.Services.AddHttpClient("ProviderService", client =>
 
 builder.Services.AddHttpClient("AppointmentService", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:AppointmentService"] ?? "http://localhost:5238");
+    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:AppointmentService"] ?? "http://localhost:5177");
 });
+
 
 // ── Background Service (Follow-Up Reminders) ─────────────────────────────────
 // FollowUpReminderService removed - notification service dependency
@@ -62,18 +63,17 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-// if (app.Environment.IsDevelopment())
-// {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json",
-            "MediBook Medical Record Service v1");
-        options.RoutePrefix = "swagger";
-    });
-// }
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json",
+        "MediBook Medical Record Service v1");
+    options.RoutePrefix = "swagger";
+});
 
-app.UseHttpsRedirection();
+app.MapGet("/", () => "MediBook Medical Record Service Running ✅");
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "MedicalRecordService" }));
+
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
