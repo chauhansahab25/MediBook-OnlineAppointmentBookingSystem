@@ -1,4 +1,3 @@
-using MedicalRecordService.BackgroundServices;
 using MedicalRecordService.Data;
 using MedicalRecordService.Repositories;
 using MedicalRecordService.Services;
