@@ -4,7 +4,6 @@ services:
     name: medibook-db
     env: docker
     plan: starter
-    healthCheckPath: /health
     envVars:
       - key: POSTGRES_DB
         value: medibook
@@ -22,7 +21,7 @@ services:
     name: medibook-auth-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: AuthService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -41,7 +40,7 @@ services:
     name: medibook-appointment-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: AppointmentService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -56,7 +55,7 @@ services:
     name: medibook-provider-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: ProviderService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -71,7 +70,7 @@ services:
     name: medibook-payment-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: PaymentService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -90,7 +89,7 @@ services:
     name: medibook-medical-record-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: MedicalRecordService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -105,7 +104,7 @@ services:
     name: medibook-review-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: ReviewService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -120,7 +119,7 @@ services:
     name: medibook-schedule-service
     env: docker
     plan: starter
-    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    repo: https://github.com/chauhansahab25/MediBook-OnlineAppointmentBookingSystem.git
     rootDir: ScheduleService
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -135,7 +134,7 @@ services:
     name: medibook-frontend
     runtime: node
     plan: starter
-    repo: https://github.com/yourusername/MediBook-Frontend.git
+    repo: https://github.com/chauhansahab25/MediBook-Frontend.git
     rootDir: medibook-frontend
     buildCommand: "npm run build --prod"
     startCommand: "npx http-server dist/medibook-frontend -p $PORT -C"
