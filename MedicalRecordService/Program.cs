@@ -62,8 +62,8 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -71,7 +71,7 @@ if (app.Environment.IsDevelopment())
             "MediBook Medical Record Service v1");
         options.RoutePrefix = "swagger";
     });
-}
+// }
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
