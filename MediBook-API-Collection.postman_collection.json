@@ -1,0 +1,797 @@
+{
+	"info": {
+		"_postman_id": "medibook-api-collection",
+		"name": "MediBook API Collection",
+		"description": "Complete API collection for MediBook Online Appointment Booking System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth Service",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"+1234567890\",\n  \"role\": \"Patient\"\n}"
+						},
+						"url": {
+							"raw": "{{auth_url}}/auth/register",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{auth_url}}/auth/login",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{auth_url}}/auth/users",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "users"]
+						}
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{auth_url}}/auth/users/{{user_id}}",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{auth_url}}/auth/users/{{user_id}}",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "users", "{{user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Provider Service",
+			"item": [
+				{
+					"name": "Get All Providers",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{provider_url}}/providers",
+							"host": ["{{provider_url}}"],
+							"path": ["providers"]
+						}
+					}
+				},
+				{
+					"name": "Get Provider by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{provider_url}}/providers/{{provider_id}}",
+							"host": ["{{provider_url}}"],
+							"path": ["providers", "{{provider_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Provider",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1,\n  \"specialization\": \"Cardiologist\",\n  \"qualification\": \"MBBS, MD\",\n  \"experienceYears\": 10,\n  \"bio\": \"Experienced cardiologist with 10+ years of practice\"\n}"
+						},
+						"url": {
+							"raw": "{{provider_url}}/providers",
+							"host": ["{{provider_url}}"],
+							"path": ["providers"]
+						}
+					}
+				},
+				{
+					"name": "Update Provider",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"specialization\": \"Senior Cardiologist\",\n  \"experienceYears\": 12\n}"
+						},
+						"url": {
+							"raw": "{{provider_url}}/providers/{{provider_id}}",
+							"host": ["{{provider_url}}"],
+							"path": ["providers", "{{provider_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Verify Provider",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{provider_url}}/providers/{{provider_id}}/verify",
+							"host": ["{{provider_url}}"],
+							"path": ["providers", "{{provider_id}}", "verify"]
+						}
+					}
+				},
+				{
+					"name": "Delete Provider",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{provider_url}}/providers/{{provider_id}}",
+							"host": ["{{provider_url}}"],
+							"path": ["providers", "{{provider_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Appointment Service",
+			"item": [
+				{
+					"name": "Get All Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{appointment_url}}/appointments",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments"]
+						}
+					}
+				},
+				{
+					"name": "Get Appointment by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{appointment_url}}/appointments/{{appointment_id}}",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments", "{{appointment_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patientId\": 1,\n  \"providerId\": 3,\n  \"slotId\": 21,\n  \"serviceType\": \"General Consultation\",\n  \"appointmentDate\": \"2026-05-20T00:00:00Z\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"10:30:00\",\n  \"modeOfConsultation\": \"InPerson\"\n}"
+						},
+						"url": {
+							"raw": "{{appointment_url}}/appointments",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments"]
+						}
+					}
+				},
+				{
+					"name": "Update Appointment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"Confirmed\"\n}"
+						},
+						"url": {
+							"raw": "{{appointment_url}}/appointments/{{appointment_id}}",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments", "{{appointment_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Cancel Appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{appointment_url}}/appointments/{{appointment_id}}/cancel",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments", "{{appointment_id}}", "cancel"]
+						}
+					}
+				},
+				{
+					"name": "Delete Appointment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{appointment_url}}/appointments/{{appointment_id}}",
+							"host": ["{{appointment_url}}"],
+							"path": ["appointments", "{{appointment_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"item": [
+				{
+					"name": "Get Payment History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{payment_url}}/payments/history",
+							"host": ["{{payment_url}}"],
+							"path": ["payments", "history"]
+						}
+					}
+				},
+				{
+					"name": "Get Payment by Appointment ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{payment_url}}/payments/appointment/{{appointment_id}}",
+							"host": ["{{payment_url}}"],
+							"path": ["payments", "appointment", "{{appointment_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"appointmentId\": 20,\n  \"amount\": 550.00,\n  \"mode\": \"Razorpay\",\n  \"currency\": \"INR\"\n}"
+						},
+						"url": {
+							"raw": "{{payment_url}}/payments",
+							"host": ["{{payment_url}}"],
+							"path": ["payments"]
+						}
+					}
+				},
+				{
+					"name": "Refund Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refundAmount\": 500.00,\n  \"refundDate\": \"2026-05-12T18:30:00Z\",\n  \"status\": \"Refunded\"\n}"
+						},
+						"url": {
+							"raw": "{{payment_url}}/payments/{{payment_id}}/refund",
+							"host": ["{{payment_url}}"],
+							"path": ["payments", "{{payment_id}}", "refund"]
+						}
+					}
+				},
+				{
+					"name": "Delete Payment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{payment_url}}/payments/{{payment_id}}",
+							"host": ["{{payment_url}}"],
+							"path": ["payments", "{{payment_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Medical Record Service",
+			"item": [
+				{
+					"name": "Get All Medical Records",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{medical_record_url}}/records",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records"]
+						}
+					}
+				},
+				{
+					"name": "Get Medical Record by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{medical_record_url}}/records/{{record_id}}",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records", "{{record_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Medical Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"appointmentId\": 20,\n  \"patientId\": 1,\n  \"providerId\": 3,\n  \"diagnosis\": \"Hypertension\",\n  \"prescription\": \"Amlodipine 5mg daily\",\n  \"notes\": \"Patient advised to reduce salt intake\"\n}"
+						},
+						"url": {
+							"raw": "{{medical_record_url}}/records",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records"]
+						}
+					}
+				},
+				{
+					"name": "Update Medical Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"diagnosis\": \"Controlled Hypertension\",\n  \"notes\": \"Blood pressure improved with medication\"\n}"
+						},
+						"url": {
+							"raw": "{{medical_record_url}}/records/{{record_id}}",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records", "{{record_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Download Medical Record",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{medical_record_url}}/records/{{record_id}}/download",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records", "{{record_id}}", "download"]
+						}
+					}
+				},
+				{
+					"name": "Delete Medical Record",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{medical_record_url}}/records/{{record_id}}",
+							"host": ["{{medical_record_url}}"],
+							"path": ["records", "{{record_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Review Service",
+			"item": [
+				{
+					"name": "Get All Reviews",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{review_url}}/reviews",
+							"host": ["{{review_url}}"],
+							"path": ["reviews"]
+						}
+					}
+				},
+				{
+					"name": "Get Review by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{review_url}}/reviews/{{review_id}}",
+							"host": ["{{review_url}}"],
+							"path": ["reviews", "{{review_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"appointmentId\": 20,\n  \"patientId\": 1,\n  \"providerId\": 3,\n  \"rating\": 5,\n  \"comment\": \"Excellent consultation, very professional\",\n  \"isAnonymous\": false\n}"
+						},
+						"url": {
+							"raw": "{{review_url}}/reviews",
+							"host": ["{{review_url}}"],
+							"path": ["reviews"]
+						}
+					}
+				},
+				{
+					"name": "Update Review",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Good consultation, but waiting time was long\"\n}"
+						},
+						"url": {
+							"raw": "{{review_url}}/reviews/{{review_id}}",
+							"host": ["{{review_url}}"],
+							"path": ["reviews", "{{review_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Review",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{review_url}}/reviews/{{review_id}}",
+							"host": ["{{review_url}}"],
+							"path": ["reviews", "{{review_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Schedule Service",
+			"item": [
+				{
+					"name": "Get Available Slots",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{schedule_url}}/slots/available?providerId={{provider_id}}&date=2026-05-20",
+							"host": ["{{schedule_url}}"],
+							"path": ["slots", "available"],
+							"query": [
+								{
+									"key": "providerId",
+									"value": "{{provider_id}}"
+								},
+								{
+									"key": "date",
+									"value": "2026-05-20"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Slots",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{schedule_url}}/slots",
+							"host": ["{{schedule_url}}"],
+							"path": ["slots"]
+						}
+					}
+				},
+				{
+					"name": "Create Slot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"providerId\": 3,\n  \"slotDate\": \"2026-05-20T00:00:00Z\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"09:30:00\",\n  \"isAvailable\": true,\n  \"maxAppointments\": 1\n}"
+						},
+						"url": {
+							"raw": "{{schedule_url}}/slots",
+							"host": ["{{schedule_url}}"],
+							"path": ["slots"]
+						}
+					}
+				},
+				{
+					"name": "Update Slot",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isAvailable\": false\n}"
+						},
+						"url": {
+							"raw": "{{schedule_url}}/slots/{{slot_id}}",
+							"host": ["{{schedule_url}}"],
+							"path": ["slots", "{{slot_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Slot",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{schedule_url}}/slots/{{slot_id}}",
+							"host": ["{{schedule_url}}"],
+							"path": ["slots", "{{slot_id}}"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

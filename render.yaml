@@ -1,0 +1,145 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: medibook-db
+    env: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: POSTGRES_DB
+        value: medibook
+      - key: POSTGRES_USER
+        value: medibook_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: medibook-db-disk
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+
+  # Auth Service
+  - type: web
+    name: medibook-auth-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: AuthService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRY_MINUTES
+        value: 60
+
+  # Appointment Service
+  - type: web
+    name: medibook-appointment-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: AppointmentService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+
+  # Provider Service
+  - type: web
+    name: medibook-provider-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: ProviderService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+
+  # Payment Service
+  - type: web
+    name: medibook-payment-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: PaymentService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+  # Medical Record Service
+  - type: web
+    name: medibook-medical-record-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: MedicalRecordService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+
+  # Review Service
+  - type: web
+    name: medibook-review-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: ReviewService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+
+  # Schedule Service
+  - type: web
+    name: medibook-schedule-service
+    env: docker
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-OnlineAppointmentBookingSystem.git
+    rootDir: ScheduleService
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: postgres://medibook_user:${{medibook-db.POSTGRES_PASSWORD}}@medibook-db:5432/medibook
+
+  # Angular Frontend
+  - type: web
+    name: medibook-frontend
+    runtime: node
+    plan: starter
+    repo: https://github.com/yourusername/MediBook-Frontend.git
+    rootDir: medibook-frontend
+    buildCommand: "npm run build --prod"
+    startCommand: "npx http-server dist/medibook-frontend -p $PORT -C"
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
