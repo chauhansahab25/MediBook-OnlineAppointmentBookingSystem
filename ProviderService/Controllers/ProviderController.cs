@@ -48,7 +48,6 @@ public class ProviderController : ControllerBase
             try
             {
                 var response = await httpClient.GetAsync($"/api/v1/auth/users/{provider.UserId}");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -61,9 +60,23 @@ public class ProviderController : ControllerBase
                         email = emailElement.GetString() ?? email;
                     if (root.TryGetProperty("role", out var roleElement))
                         role = roleElement.GetString() ?? role;
+
+                    // Skip if user is not a Provider
+                    if (role != "Provider")
+                        continue;
+                }
+                else
+                {
+                    // User not found or service error - skip this orphan provider record
+                    continue;
                 }
             }
-            catch { /* Use defaults */ }
+            catch 
+            { 
+                // Skip if we can't verify the user
+                continue; 
+            }
+
             
             // Fetch Rating from ReviewService
             double avgRating = 0;
