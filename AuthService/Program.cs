@@ -62,13 +62,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
 });
-
 
 // ── Controllers & Swagger ────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -111,6 +109,9 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseRouting();
+app.UseCors("AllowAll");
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -121,7 +122,6 @@ app.UseSwaggerUI(options =>
 app.MapGet("/", () => "MediBook Auth Service Running ✅");
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AuthService" }));
 
-app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

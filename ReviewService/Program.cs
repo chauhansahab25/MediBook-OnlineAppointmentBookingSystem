@@ -4,7 +4,10 @@ using ReviewService.Data;
 using ReviewService.Repositories;
 using ReviewService.Services;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
+
 
 // ── Database (PostgreSQL) ────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -34,11 +37,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
+
 });
 
 
@@ -60,6 +63,7 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseRouting();
 app.UseCors("AllowAll");
 
 app.UseSwagger();
@@ -72,9 +76,10 @@ app.UseSwaggerUI(options =>
 app.MapGet("/", () => "MediBook Review Service Running ✅");
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ReviewService" }));
 
-
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 
 // ── Auto Migrate on Startup ───────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())

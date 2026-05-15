@@ -66,11 +66,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
+
 });
 
 
@@ -92,9 +92,11 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware ──────────────────────────────────────────────────────────
+app.UseRouting();
 app.UseCors("AllowAll");
 
 app.UseSwagger();
+
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Provider Service v1");

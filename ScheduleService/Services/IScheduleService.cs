@@ -10,8 +10,9 @@ public interface IScheduleService
     Task<List<AvailabilitySlot>> AddBulkSlots(List<BulkSlotDto> dtos);
 
     Task<List<AvailabilitySlot>> GetSlotsByProvider(int providerId);
-
+    Task<List<AvailabilitySlot>> GetSlotsByProviderAndDate(int providerId, DateTime date);
     Task<List<AvailabilitySlot>> GetAvailableSlots(int providerId, DateTime date);
+
 
     Task<AvailabilitySlot?> GetSlotById(int slotId);
 
