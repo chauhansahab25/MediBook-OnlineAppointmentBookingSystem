@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "Z2iSMEYRFB/RIPVSxDE44vSnvrXfQBK1FTSOyGlkP3s=",
+  "Source": "MedicalRecordService",
+  "BasePath": "_content/MedicalRecordService",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

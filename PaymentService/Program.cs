@@ -46,6 +46,8 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseCors("AllowAll");
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -56,7 +58,6 @@ app.UseSwaggerUI(options =>
 app.MapGet("/", () => "MediBook Payment Service Running ✅");
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "PaymentService" }));
 
-app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 
