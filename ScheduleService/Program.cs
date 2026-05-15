@@ -30,11 +30,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -54,6 +56,8 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseCors("AllowAll");
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -64,7 +68,6 @@ app.UseSwaggerUI(options =>
 app.MapGet("/", () => "MediBook Schedule Service Running ✅");
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ScheduleService" }));
 
-app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 

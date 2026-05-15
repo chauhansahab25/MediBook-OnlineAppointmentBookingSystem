@@ -24,6 +24,13 @@ builder.Services.AddHttpClient("AuthService", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
+builder.Services.AddHttpClient("ReviewService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:ReviewServiceUrl"] ?? "http://localhost:5211");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+
 // ── JWT Authentication ──────────────────────────────────────────────────────
 string jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("JWT Key is missing from configuration.");
@@ -59,11 +66,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
