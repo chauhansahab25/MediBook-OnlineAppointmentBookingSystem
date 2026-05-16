@@ -24,13 +24,6 @@ builder.Services.AddHttpClient("AuthService", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
-builder.Services.AddHttpClient("ReviewService", client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["Services:ReviewServiceUrl"] ?? "http://localhost:5211");
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
-
-
 // ── JWT Authentication ──────────────────────────────────────────────────────
 string jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("JWT Key is missing from configuration.");
@@ -70,9 +63,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
-
 });
-
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -91,21 +82,19 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// ── Middleware ──────────────────────────────────────────────────────────
-app.UseRouting();
-app.UseCors("AllowAll");
-
-app.UseSwagger();
-
-app.UseSwaggerUI(options =>
+// ── Middleware ────────────────────────────────────────────────────────────────
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Provider Service v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Provider Service v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
-app.MapGet("/", () => "MediBook Provider Service Running ✅");
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ProviderService" }));
-
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

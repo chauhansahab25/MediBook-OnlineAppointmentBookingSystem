@@ -109,19 +109,18 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-app.UseRouting();
-app.UseCors("AllowAll");
-
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Auth Service v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Auth Service v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
-app.MapGet("/", () => "MediBook Auth Service Running ✅");
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AuthService" }));
-
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

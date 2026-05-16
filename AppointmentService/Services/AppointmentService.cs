@@ -23,14 +23,24 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetAll()
     {
         var appointments = await _repo.FindAll();
-        var dtos = appointments.Select(a => MapToResponse(a)).ToList();
-        
-        var enrichmentTasks = dtos.Select(dto => EnrichAppointmentData(dto));
-        await Task.WhenAll(enrichmentTasks);
-        
-        return dtos;
-    }
+        var enrichedAppointments = new List<AppointmentResponseDto>();
 
+        foreach (var appointment in appointments)
+        {
+            var dto = MapToResponse(appointment);
+            try
+            {
+                await EnrichAppointmentData(dto);
+            }
+            catch
+            {
+                // If enrichment fails, continue with basic data
+            }
+            enrichedAppointments.Add(dto);
+        }
+
+        return enrichedAppointments;
+    }
 
     public async Task<AppointmentResponseDto> BookAppointment(BookAppointmentDto dto)
     {
@@ -107,29 +117,30 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetByPatient(int patientId)
     {
         var appointments = await _repo.FindByPatientId(patientId);
-        var dtos = appointments.Select(a => MapToResponse(a)).ToList();
-        
-        var enrichmentTasks = dtos.Select(dto => EnrichAppointmentData(dto));
-        await Task.WhenAll(enrichmentTasks);
-        
-        return dtos;
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
-
 
     // ── Get By Provider ───────────────────────────────────────────────────────
 
     public async Task<List<AppointmentResponseDto>> GetByProvider(int providerId)
     {
         var appointments = await _repo.FindByProviderId(providerId);
-        var dtos = appointments.Select(a => MapToResponse(a)).ToList();
-        
-        // Enrich in parallel for better performance
-        var enrichmentTasks = dtos.Select(dto => EnrichAppointmentData(dto));
-        await Task.WhenAll(enrichmentTasks);
-        
-        return dtos;
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
-
 
     // ── Get By Provider And Date ──────────────────────────────────────────────
 
@@ -137,14 +148,15 @@ public class AppointmentService : IAppointmentService
         int providerId, DateTime date)
     {
         var appointments = await _repo.FindByProviderIdAndAppointmentDate(providerId, date);
-        var dtos = appointments.Select(a => MapToResponse(a)).ToList();
-        
-        var enrichmentTasks = dtos.Select(dto => EnrichAppointmentData(dto));
-        await Task.WhenAll(enrichmentTasks);
-        
-        return dtos;
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
-
 
     // ── Cancel Appointment ────────────────────────────────────────────────────
 
@@ -300,14 +312,15 @@ public class AppointmentService : IAppointmentService
     public async Task<List<AppointmentResponseDto>> GetUpcomingByPatient(int patientId)
     {
         var appointments = await _repo.FindUpcomingByPatientId(patientId);
-        var dtos = appointments.Select(a => MapToResponse(a)).ToList();
-        
-        var enrichmentTasks = dtos.Select(dto => EnrichAppointmentData(dto));
-        await Task.WhenAll(enrichmentTasks);
-        
-        return dtos;
+        var enriched = new List<AppointmentResponseDto>();
+        foreach (var a in appointments)
+        {
+            var dto = MapToResponse(a);
+            await EnrichAppointmentData(dto);
+            enriched.Add(dto);
+        }
+        return enriched;
     }
-
 
     // ── Get Appointment Count ─────────────────────────────────────────────────
 
@@ -419,8 +432,6 @@ public class AppointmentService : IAppointmentService
     {
         try
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
             // Fetch patient details from AuthService
             try
             {
@@ -431,23 +442,20 @@ public class AppointmentService : IAppointmentService
                     var patientJson = await patientResponse.Content.ReadAsStringAsync();
                     if (!string.IsNullOrEmpty(patientJson))
                     {
-                        var patient = JsonSerializer.Deserialize<JsonElement>(patientJson, options);
-                        
+                        var patient = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(patientJson);
                         if (patient.ValueKind != JsonValueKind.Null && patient.ValueKind != JsonValueKind.Undefined)
                         {
-                            // Try multiple casing variants for robustness
-                            if (patient.TryGetProperty("fullName", out var fn1)) dto.PatientName = fn1.GetString();
-                            else if (patient.TryGetProperty("FullName", out var fn2)) dto.PatientName = fn2.GetString();
-                            
-                            if (patient.TryGetProperty("email", out var e1)) dto.PatientEmail = e1.GetString();
-                            else if (patient.TryGetProperty("Email", out var e2)) dto.PatientEmail = e2.GetString();
+                            if (patient.TryGetProperty("fullName", out var fullNameProp))
+                                dto.PatientName = fullNameProp.GetString();
+                            if (patient.TryGetProperty("email", out var emailProp))
+                                dto.PatientEmail = emailProp.GetString();
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error enriching patient data for {dto.PatientId}: {ex.Message}");
+                // If auth service fails, continue without patient data
             }
 
             // Fetch provider details from ProviderService
@@ -460,27 +468,23 @@ public class AppointmentService : IAppointmentService
                     var providerJson = await providerResponse.Content.ReadAsStringAsync();
                     if (!string.IsNullOrEmpty(providerJson))
                     {
-                        var provider = JsonSerializer.Deserialize<JsonElement>(providerJson, options);
-                        
+                        var provider = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(providerJson);
                         if (provider.ValueKind != JsonValueKind.Null && provider.ValueKind != JsonValueKind.Undefined)
                         {
-                            if (provider.TryGetProperty("fullName", out var pfn1)) dto.ProviderName = pfn1.GetString();
-                            else if (provider.TryGetProperty("FullName", out var pfn2)) dto.ProviderName = pfn2.GetString();
-                            
-                            if (provider.TryGetProperty("email", out var pe1)) dto.ProviderEmail = pe1.GetString();
-                            else if (provider.TryGetProperty("Email", out var pe2)) dto.ProviderEmail = pe2.GetString();
-                            
-                            if (provider.TryGetProperty("specialization", out var s1)) dto.Specialization = s1.GetString();
-                            else if (provider.TryGetProperty("Specialization", out var s2)) dto.Specialization = s2.GetString();
+                            if (provider.TryGetProperty("fullName", out var fullNameProp))
+                                dto.ProviderName = fullNameProp.GetString();
+                            if (provider.TryGetProperty("email", out var emailProp))
+                                dto.ProviderEmail = emailProp.GetString();
+                            if (provider.TryGetProperty("specialization", out var specProp))
+                                dto.Specialization = specProp.GetString();
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error enriching provider data for {dto.ProviderId}: {ex.Message}");
+                // If provider service fails, continue without provider data
             }
-
 
             // Fetch Payment status from PaymentService
             var paymentClient = _httpClientFactory.CreateClient("PaymentService");

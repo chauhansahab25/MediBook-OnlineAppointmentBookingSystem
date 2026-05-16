@@ -53,21 +53,16 @@ public class ScheduleController : ControllerBase
         }
     }
 
-    /// <summary>Get all slots for a provider on a specific date</summary>
-    [HttpGet("provider/{providerId}/date/{date}")]
+    /// <summary>Get all slots for a provider</summary>
+    [HttpGet("provider/{providerId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProviderAndDate(int providerId, string date)
+    public async Task<IActionResult> GetByProvider(int providerId)
     {
-        if (DateTime.TryParse(date, out DateTime parsedDate))
-        {
-            var slots = await _service.GetSlotsByProviderAndDate(providerId, parsedDate);
-            return Ok(slots);
-        }
-        return BadRequest(new { message = "Invalid date format." });
+        var slots = await _service.GetSlotsByProvider(providerId);
+        return Ok(slots);
     }
 
     /// <summary>Get available slots for a provider on a specific date</summary>
-
     [HttpGet("provider/{providerId}/available")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAvailable(int providerId, [FromQuery] string date)

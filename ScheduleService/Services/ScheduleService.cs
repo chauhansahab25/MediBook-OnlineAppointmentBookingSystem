@@ -81,13 +81,7 @@ public class ScheduleService : IScheduleService
         return await _repo.FindByProviderId(providerId);
     }
 
-    public async Task<List<AvailabilitySlot>> GetSlotsByProviderAndDate(int providerId, DateTime date)
-    {
-        return await _repo.FindByProviderIdAndDate(providerId, date);
-    }
-
     // ── Get only available (not booked, not blocked) slots ────────────────────
-
 
     public async Task<List<AvailabilitySlot>> GetAvailableSlots(int providerId, DateTime date)
     {

@@ -12,14 +12,10 @@ namespace ProviderService.Controllers;
 public class ProviderController : ControllerBase
 {
     private readonly IProviderService _providerService;
-    private readonly IConfiguration _configuration;
-    private readonly IHttpClientFactory _httpClientFactory;
 
-    public ProviderController(IProviderService providerService, IConfiguration configuration, IHttpClientFactory httpClientFactory)
+    public ProviderController(IProviderService providerService)
     {
         _providerService = providerService;
-        _configuration = configuration;
-        _httpClientFactory = httpClientFactory;
     }
 
     [HttpGet]
@@ -37,7 +33,8 @@ public class ProviderController : ControllerBase
         
         // Enrich with user data
         var enrichedProviders = new List<object>();
-        var httpClient = _httpClientFactory.CreateClient("AuthService");
+        using var httpClient = new HttpClient();
+        var authServiceUrl = "http://localhost:5219/api/v1/auth";
         
         foreach (var provider in providers)
         {
@@ -47,7 +44,7 @@ public class ProviderController : ControllerBase
             
             try
             {
-                var response = await httpClient.GetAsync($"/api/v1/auth/users/{provider.UserId}");
+                var response = await httpClient.GetAsync($"{authServiceUrl}/users/{provider.UserId}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -60,30 +57,20 @@ public class ProviderController : ControllerBase
                         email = emailElement.GetString() ?? email;
                     if (root.TryGetProperty("role", out var roleElement))
                         role = roleElement.GetString() ?? role;
-
+                    
                     // Skip if user is not a Provider
                     if (role != "Provider")
                         continue;
                 }
-                else
-                {
-                    // User not found or service error - skip this orphan provider record
-                    continue;
-                }
             }
-            catch 
-            { 
-                // Skip if we can't verify the user
-                continue; 
-            }
-
+            catch { /* Use defaults */ }
             
             // Fetch Rating from ReviewService
             double avgRating = 0;
             try
             {
-                var reviewHttpClient = _httpClientFactory.CreateClient("ReviewService");
-                var ratingResponse = await reviewHttpClient.GetAsync($"/api/v1/reviews/provider/{provider.ProviderId}/avgrating");
+                var reviewServiceUrl = "http://localhost:5211/api/v1/reviews"; 
+                var ratingResponse = await httpClient.GetAsync($"{reviewServiceUrl}/provider/{provider.ProviderId}/avgrating");
                 if (ratingResponse.IsSuccessStatusCode)
                 {
                     var ratingJson = await ratingResponse.Content.ReadAsStringAsync();
@@ -93,8 +80,6 @@ public class ProviderController : ControllerBase
                 }
             }
             catch { avgRating = provider.AvgRating; }
-
-
 
             enrichedProviders.Add(new
             {

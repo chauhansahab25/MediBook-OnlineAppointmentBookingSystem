@@ -7,7 +7,6 @@ Render provides managed PostgreSQL databases.
 - Create a new PostgreSQL database on Render.
 - Copy the **Internal Database URL** for service-to-service communication or **External Database URL** for local testing.
 - Ensure the connection string is updated in each service's `appsettings.json` or as an environment variable.
-- **Tip**: When connecting from outside Render, append `?sslmode=require` to your connection string.
 
 ## 2. Deploying Services (Web Service)
 

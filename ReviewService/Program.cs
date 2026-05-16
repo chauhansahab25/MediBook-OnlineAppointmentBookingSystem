@@ -4,10 +4,7 @@ using ReviewService.Data;
 using ReviewService.Repositories;
 using ReviewService.Services;
 
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 var builder = WebApplication.CreateBuilder(args);
-
 
 // ── Database (PostgreSQL) ────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -41,9 +38,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
-
 });
-
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -63,23 +58,20 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-app.UseRouting();
-app.UseCors("AllowAll");
-
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Review Service v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Review Service v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
-app.MapGet("/", () => "MediBook Review Service Running ✅");
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ReviewService" }));
-
-app.UseAuthentication();
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
-
 
 // ── Auto Migrate on Startup ───────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())

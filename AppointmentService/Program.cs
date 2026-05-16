@@ -17,27 +17,24 @@ builder.Services.AddHttpClient("ScheduleService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:ScheduleService"]
-        ?? "http://localhost:5043");
+        ?? "http://localhost:5002");
 });
-
 
 // ── HTTP Client for Provider-Service communication ───────────────────────────
 builder.Services.AddHttpClient("ProviderService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:ProviderService"]
-        ?? "http://localhost:5096");
+        ?? "http://localhost:5003");
 });
-
 
 // ── HTTP Client for Auth-Service communication ────────────────────────────────
 builder.Services.AddHttpClient("AuthService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:AuthService"]
-        ?? "http://localhost:5219");
+        ?? "http://localhost:5001");
 });
-
 
 builder.Services.AddHttpClient("PaymentService", client =>
 {
@@ -59,9 +56,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
-
 });
-
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -81,18 +76,18 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-app.UseCors("AllowAll");
-
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Appointment Service v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Appointment Service v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
-app.MapGet("/", () => "MediBook Appointment Service Running ✅");
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AppointmentService" }));
-
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 
