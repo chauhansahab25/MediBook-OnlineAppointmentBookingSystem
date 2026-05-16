@@ -17,8 +17,7 @@ builder.Services.AddHttpClient("ProviderService", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ServiceUrls:ProviderService"]
-        ?? "http://localhost:5096");
-
+        ?? "http://localhost:5003");
 });
 
 // ── Dependency Injection ─────────────────────────────────────────────────────
@@ -54,16 +53,17 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Schedule Service v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MediBook Schedule Service v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
-app.MapGet("/", () => "MediBook Schedule Service Running ✅");
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ScheduleService" }));
-
+app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
