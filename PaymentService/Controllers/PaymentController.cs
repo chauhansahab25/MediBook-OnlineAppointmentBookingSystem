@@ -36,14 +36,13 @@ public class PaymentController : ControllerBase
     /// <summary>Get payment by appointment ID</summary>
     [HttpGet("appointment/{appointmentId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByAppointment(int appointmentId)
     {
         var payment = await _service.GetPaymentByAppointment(appointmentId);
 
         if (payment == null)
         {
-            return NotFound(new { message = "Payment not found." });
+            return Ok(null);
         }
 
         return Ok(payment);
