@@ -26,13 +26,8 @@ All services connect to the same PostgreSQL database on Render.com:
 
 ## Quick Start
 
-### Option 1: Start All Services (Recommended)
-```powershell
-cd E:\MediBook-OnlineAppointmentBookingSystem
-.\start-all-services.ps1
-```
 
-### Option 2: Start Individual Services
+### Start Individual Services
 ```powershell
 # AuthService
 cd E:\MediBook-OnlineAppointmentBookingSystem\AuthService
