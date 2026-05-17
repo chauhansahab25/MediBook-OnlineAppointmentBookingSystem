@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -15,6 +15,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReviewService", "ReviewService\ReviewService.csproj", "{302CB08B-4FD8-EE57-70DF-B3C948849E6E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScheduleService", "ScheduleService\ScheduleService.csproj", "{6C09AD84-2614-64A2-DA26-444287661D6A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediBook.Tests", "MediBook.Tests\MediBook.Tests.csproj", "{6F685C43-DE85-4164-B956-16F1C6FCD415}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +52,10 @@ Global
 		{6C09AD84-2614-64A2-DA26-444287661D6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C09AD84-2614-64A2-DA26-444287661D6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C09AD84-2614-64A2-DA26-444287661D6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F685C43-DE85-4164-B956-16F1C6FCD415}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F685C43-DE85-4164-B956-16F1C6FCD415}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F685C43-DE85-4164-B956-16F1C6FCD415}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F685C43-DE85-4164-B956-16F1C6FCD415}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
