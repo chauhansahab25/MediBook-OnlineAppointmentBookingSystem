@@ -200,27 +200,27 @@ sequenceDiagram
 This use case diagram represents the actors in the system (Patient, Provider, Admin) and their primary use cases.
 
 ```mermaid
-usecaseDiagram
-    actor Patient as "Patient"
-    actor Provider as "Provider"
-    actor Admin as "Admin"
+flowchart LR
+    Patient((Patient))
+    Provider((Provider))
+    Admin((Admin))
 
-    rectangle "MediBook System" {
-        usecase "Register & Login" as UC1
-        usecase "Search Providers" as UC2
-        usecase "Book Appointment" as UC3
-        usecase "Submit Review" as UC4
-        usecase "View Medical Records" as UC5
+    subgraph MediBook System
+        UC1([Register & Login])
+        UC2([Search Providers])
+        UC3([Book Appointment])
+        UC4([Submit Review])
+        UC5([View Medical Records])
         
-        usecase "Manage Profile" as UC6
-        usecase "Manage Schedule" as UC7
-        usecase "Manage Appointments" as UC8
-        usecase "Add Medical Records" as UC9
+        UC6([Manage Profile])
+        UC7([Manage Schedule])
+        UC8([Manage Appointments])
+        UC9([Add Medical Records])
         
-        usecase "Manage Users" as UC10
-        usecase "Verify Providers" as UC11
-        usecase "Verify Reviews" as UC12
-    }
+        UC10([Manage Users])
+        UC11([Verify Providers])
+        UC12([Verify Reviews])
+    end
 
     Patient --> UC1
     Patient --> UC2
