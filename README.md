@@ -3,6 +3,14 @@
 ## Overview
 MediBook is a microservices-based healthcare appointment booking system with 8 independent services.
 
+## System Architecture & Diagrams
+For a comprehensive visual overview of the MediBook system, please refer to the [MediBook Diagrams](./MediBook-Diagrams.md) file. This document includes:
+- **Architecture Diagram**: Microservices layout and routing.
+- **Database ER Diagram**: Entity relationships across the PostgreSQL database.
+- **System Design Diagram**: API and business logic layering.
+- **Service Flow Diagram**: Sequence for appointment booking.
+- **UML Use Case Diagram**: Patient, Provider, and Admin workflows.
+
 ## Prerequisites
 - .NET 8.0 SDK
 - PostgreSQL Database (Render.com hosted)
